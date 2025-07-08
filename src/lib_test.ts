@@ -1,5 +1,5 @@
 import { assertEquals } from "@std/assert";
-import { pipeAsyncResult, success, failure, isSuccess, isFailure, type ResultFailure } from "./lib.ts";
+import { pipeAsyncResult, success, failure, isSuccess, isFailure, type Result, type ResultFailure } from "./lib.ts";
 
 Deno.test("Result型 - 失敗ケース: 最初の関数で失敗", async () => {
   const f1 = () => failure(null, ["初期エラー"]);
@@ -201,8 +201,9 @@ Deno.test("Result型 - エラー復帰機能: 途中の関数のエラーから�
   const pipeline = pipeAsyncResult(f1, f2, f3);
   
   // 復帰関数: エラーが発生したら最終的な値を返す（パイプライン処理は終了）
-  const recoveryFunc = (error: ResultFailure<string>) => {
+  const recoveryFunc = (error: ResultFailure<string, number>) => {
     console.log("途中でエラーを検出:", error.errors);
+    console.log("エラー時の引数（型制約あり）:", error.value); // numberとして推論される
     return success(200); // エラー復帰時の最終値
   };
   
@@ -245,7 +246,7 @@ Deno.test("Result型 - エラー復帰機能: エラーが発生しない場合�
   const pipeline = pipeAsyncResult(f1, f2, f3);
   
   let recoveryCallCount = 0;
-  const recoveryFunc = (error: ResultFailure<string>) => {
+  const recoveryFunc = (error: ResultFailure<string, unknown>) => {
     recoveryCallCount++;
     console.log("復帰処理が呼ばれました:", error.errors);
     return success(999);
@@ -280,7 +281,7 @@ Deno.test("Result型 - エラー復帰機能なし: 従来通りの動作", asyn
 
 Deno.test("test with throw", async () => {
   const f1 = () => success(1);
-  const f2 = (n: number) => {
+  const f2 = (_n: number) => {
     throw new Error("Test error");
   };
   const f3 = (n: number) => success(n * 2);    // この関数は実行されない
@@ -371,11 +372,12 @@ Deno.test("Result型 - throw処理: 文字列をthrow", async () => {
 
 Deno.test("Result型 - throw処理: エラー復帰機能と組み合わせ", async () => {
   const f1 = () => success(50);
-  const f2 = (_n: number) => {
-    throw new Error("計算エラー");
+  const f2: (n: number) => Result<number, "ERROR 1"> = (_n: number) => {
+    throw "ERROR 1";
   };
-  const f3 = (n: number) => success(n + 100);
-  
+  const f3: (n: number) => Result<number, "ERROR 2"> = (_n: number) => {
+    throw "ERROR 2";
+  };
   const pipeline = pipeAsyncResult(f1, f2, f3);
   
   const recoveryFunc = (error: ResultFailure<string, unknown>) => {
@@ -412,5 +414,172 @@ Deno.test("Result型 - throw処理: Result型とthrowの混在", async () => {
   if (isFailure(result)) {
     assertEquals(result.errors, ["Result型エラー"]);
     assertEquals(result.value, 5);
+  }
+});
+
+Deno.test("Result型 - 型制約: 具体的な型でのエラー復帰", async () => {
+  const f1 = () => success(42);
+  const f2 = (n: number) => {
+    if (n > 40) {
+      return failure(n, ["数値が大きすぎます"]);
+    }
+    return success(`値: ${n}`);
+  };
+  const f3 = (s: string) => success(s.length);
+  
+  const pipeline = pipeAsyncResult(f1, f2, f3);
+  
+  // 型制約：error.valueはnumber | string型として推論される
+  const result = await pipeline.run((error) => {
+    console.log("エラー時の値:", error.value);
+    // 型ガードを使用して具体的な型を判定
+    if (typeof error.value === "number") {
+      console.log("数値として扱う:", error.value + 10);
+    }
+    return success(999);
+  });
+  
+  assertEquals(isSuccess(result), true);
+  if (isSuccess(result)) {
+    assertEquals(result.value, 999);
+  }
+});
+
+Deno.test("Result型 - 型制約: 文字列型でのエラー復帰", async () => {
+  const f1 = () => success("hello");
+  const f2 = (s: string) => {
+    if (s.length > 3) {
+      return failure(s, ["文字列が長すぎます"]);
+    }
+    return success(s.length);
+  };
+  
+  const pipeline = pipeAsyncResult(f1, f2);
+  
+  // 型制約：error.valueはstring | number型として推論される
+  const result = await pipeline.run((error) => {
+    console.log("エラー時の値:", error.value);
+    // 型ガードを使用して文字列型を判定
+    if (typeof error.value === "string") {
+      console.log("文字列として扱う:", error.value.toUpperCase());
+      console.log("文字数:", error.value.length);
+    }
+    return success(0);
+  });
+  
+  assertEquals(isSuccess(result), true);
+  if (isSuccess(result)) {
+    assertEquals(result.value, 0);
+  }
+});
+
+Deno.test("Result型 - 型制約: オブジェクト型でのエラー復帰", async () => {
+  interface User {
+    id: number;
+    name: string;
+  }
+  
+  const f1 = () => success({ id: -1, name: "Alice" }); // 無効なIDに変更
+  const f2 = (user: User) => {
+    if (user.id <= 0) {
+      return failure(user, ["無効なユーザーID"]);
+    }
+    return success(`ユーザー: ${user.name}`);
+  };
+  
+  const pipeline = pipeAsyncResult(f1, f2);
+  
+  // 型制約：error.valueは自動的にUser型として推論される
+  const result = await pipeline.run((error) => {
+    console.log("エラー時のユーザー:", error.value); // Union型として扱われる
+    return success("デフォルトユーザー");
+  });
+  
+  assertEquals(isSuccess(result), true);
+  if (isSuccess(result)) {
+    assertEquals(result.value, "デフォルトユーザー");
+  }
+});
+
+Deno.test("Result型 - 型制約: パイプライン型推論の確認", async () => {
+  // パイプライン: number → string → number
+  const f1 = () => success(100);
+  const f2 = (n: number) => success(`数値: ${n}`);
+  const f3 = (s: string) => {
+    if (s.length > 6) {
+      return failure(s, ["文字列が長すぎます"]);
+    }
+    return success(s.length);
+  };
+  
+  const pipeline = pipeAsyncResult(f1, f2, f3);
+  
+  // recoveryFuncのerror.valueは number | string 型として自動推論される
+  const result = await pipeline.run((error) => {
+    console.log("エラー発生箇所の値:", error.value);
+    console.log("エラー発生箇所の型:", typeof error.value);
+    
+    // 型ガードを使用して安全に操作
+    if (typeof error.value === "number") {
+      console.log("数値として処理:", error.value * 2);
+    } else if (typeof error.value === "string") {
+      console.log("文字列として処理:", error.value.toUpperCase());
+    }
+    
+    return success(-1); // エラー復帰値
+  });
+  
+  assertEquals(isSuccess(result), true);
+  if (isSuccess(result)) {
+    assertEquals(result.value, -1);
+  }
+});
+
+Deno.test("Result型 - 型制約: 複雑なオブジェクト型の推論", async () => {
+  interface Config {
+    apiUrl: string;
+    timeout: number;
+  }
+  
+  interface User {
+    id: number;
+    name: string;
+    config: Config;
+  }
+  
+  const f1 = () => success({ apiUrl: "https://api.example.com", timeout: 5000 });
+  const f2 = (config: Config) => success({ id: 1, name: "Test User", config });
+  const f3 = (user: User) => {
+    if (user.config.timeout < 1000) {
+      return failure(user, ["タイムアウトが短すぎます"]);
+    }
+    return success(`${user.name} (${user.config.apiUrl})`);
+  };
+  
+  const pipeline = pipeAsyncResult(f1, f2, f3);
+  
+  // recoveryFuncのerror.valueは Config | User 型として自動推論される
+  const result = await pipeline.run((error) => {
+    console.log("エラー時の値の型:", typeof error.value);
+    
+    // 型ガードでオブジェクトの種類を判定
+    if (typeof error.value === 'object' && error.value !== null) {
+      if ('id' in error.value && 'name' in error.value) {
+        // User型として処理
+        const user = error.value as User;
+        console.log("Userオブジェクト:", user.name);
+      } else if ('apiUrl' in error.value && 'timeout' in error.value) {
+        // Config型として処理
+        const config = error.value as Config;
+        console.log("Configオブジェクト:", config.apiUrl);
+      }
+    }
+    
+    return success("エラー復帰完了");
+  });
+  
+  assertEquals(isSuccess(result), true);
+  if (isSuccess(result)) {
+    assertEquals(result.value, "Test User (https://api.example.com)");
   }
 });

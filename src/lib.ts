@@ -14,6 +14,20 @@ type PipeResultResult<T, Fns extends readonly unknown[], E = string> =
       : T
     : T;
 
+// パイプラインの中間値の型を推論するためのヘルパー型
+type PipelineIntermediateTypes<T, Fns extends readonly unknown[], E = string> = 
+  Fns extends readonly []
+    ? [T]
+    : Fns extends readonly [infer F, ...infer Rest]
+    ? F extends ResultFunc<T, infer U, E>
+      ? [T, ...PipelineIntermediateTypes<Awaited<U>, Rest, E>]
+      : [T]
+    : [T];
+
+// パイプラインの入力型の和集合を作成
+type UnionOfPipelineInputs<T, Fns extends readonly unknown[], E = string> = 
+  PipelineIntermediateTypes<T, Fns, E>[number];
+
 export interface ResultFailure<F, T = unknown> {
   value: T;
   errors: F[];
@@ -23,7 +37,7 @@ export interface ResultSuccess<T> {
   value: T;
 }
 
-type Result<T, F> = ResultSuccess<T> | ResultFailure<F, T>;
+export type Result<T, F> = ResultSuccess<T> | ResultFailure<F, T>;
 
 export function success<T>(value: T): ResultSuccess<T> {
   return { value };
@@ -42,8 +56,8 @@ export function isFailure<T, F>(result: Result<T, F>): result is ResultFailure<F
   return 'errors' in result;
 }
 
-interface ResultPipeline<T, E = string> {
-  run: (recoveryFunc?: (error: ResultFailure<E, unknown>) => Result<T, E>) => Promise<Result<T, E>>;
+interface ResultPipeline<T, Fns extends readonly unknown[], E = string> {
+  run: (recoveryFunc?: (error: ResultFailure<E, UnionOfPipelineInputs<T, Fns, E>>) => Result<PipeResultResult<Awaited<T>, Fns, E>, E>) => Promise<Result<PipeResultResult<Awaited<T>, Fns, E>, E>>;
 }
 
 // Result型を使用するパイプライン関数（n個の引数に対応）
@@ -51,17 +65,17 @@ interface ResultPipeline<T, E = string> {
 export function pipeAsyncResult<T, const Fns extends readonly Function[], E = string>(
   f1: FirstResultFunc<T, E>,
   ...fns: Fns
-): ResultPipeline<PipeResultResult<Awaited<T>, Fns, E>, E> {
+): ResultPipeline<T, Fns, E> {
   return {
-    run: async (recoveryFunc?: (error: ResultFailure<E, unknown>) => Result<PipeResultResult<Awaited<T>, Fns, E>, E>) => {
+    run: async (recoveryFunc?: (error: ResultFailure<E, UnionOfPipelineInputs<T, Fns, E>>) => Result<PipeResultResult<Awaited<T>, Fns, E>, E>) => {
       let result: Result<unknown, E>;
       
       // 最初の関数でのthrowをキャッチ
       try {
         result = await f1();
       } catch (error) {
-        const thrownError: ResultFailure<E, unknown> = {
-          value: null,
+        const thrownError: ResultFailure<E, UnionOfPipelineInputs<T, Fns, E>> = {
+          value: null as UnionOfPipelineInputs<T, Fns, E>,
           errors: [error instanceof Error ? error.message : String(error)] as E[]
         };
         if (recoveryFunc) {
@@ -72,10 +86,14 @@ export function pipeAsyncResult<T, const Fns extends readonly Function[], E = st
       }
       
       if (isFailure(result)) {
+        const typedError: ResultFailure<E, UnionOfPipelineInputs<T, Fns, E>> = {
+          value: result.value as UnionOfPipelineInputs<T, Fns, E>,
+          errors: result.errors
+        };
         if (recoveryFunc) {
-          return recoveryFunc(result);
+          return recoveryFunc(typedError);
         } else {
-          return result as Result<PipeResultResult<Awaited<T>, Fns, E>, E>;
+          return typedError as Result<PipeResultResult<Awaited<T>, Fns, E>, E>;
         }
       }
       
@@ -86,8 +104,8 @@ export function pipeAsyncResult<T, const Fns extends readonly Function[], E = st
           try {
             result = await (fn as ResultFunc<unknown, unknown, E>)(currentValue);
           } catch (error) {
-            const thrownError: ResultFailure<E, unknown> = {
-              value: currentValue,
+            const thrownError: ResultFailure<E, UnionOfPipelineInputs<T, Fns, E>> = {
+              value: currentValue as UnionOfPipelineInputs<T, Fns, E>,
               errors: [error instanceof Error ? error.message : String(error)] as E[]
             };
             if (recoveryFunc) {
@@ -99,8 +117,8 @@ export function pipeAsyncResult<T, const Fns extends readonly Function[], E = st
           
           if (isFailure(result)) {
             // エラー時に引数内容も含める
-            const errorWithInput: ResultFailure<E, unknown> = {
-              value: currentValue,
+            const errorWithInput: ResultFailure<E, UnionOfPipelineInputs<T, Fns, E>> = {
+              value: currentValue as UnionOfPipelineInputs<T, Fns, E>,
               errors: result.errors
             };
             if (recoveryFunc) {
