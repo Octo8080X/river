@@ -7,8 +7,8 @@ interface ResultFailure<T, F>{
 }
 type Result<T,F> = ResultSuccess<T>| ResultFailure<T,F>;
 
-// 複数のエラー型を処理できるA関数
-function A<F1 extends string, F2 extends string, F3 extends string>(
+// 複数のエラー型を処理できるpipeline関数
+function pipeline<F1 extends string, F2 extends string, F3 extends string>(
   r1: () => Result<number, F1>,
   r2: (v: number) => Result<number, F2>,
   r3: (v: number) => Result<number, F3>
@@ -54,7 +54,7 @@ const r2 = (s:number): Result<number, "EEE2"> => ({v: s + 1});
 const r3 = (s:number): Result<number, "EEE3"> => ({v: s + 2});
 
 // 型推論によってFFFFは "EEE1" | "EEE2" | "EEE3" になる
-const a = A(r1, r2, r3);
+const a = pipeline(r1, r2, r3);
 const aa = a(undefined);
 console.log(aa);
 
@@ -69,7 +69,7 @@ const e3 = (s:number): Result<number, "EEE3"> => ({v: s + 2});
 //  return -1;
 //};
 
-const b = A(e1, e2, e3);
+const b = pipeline(e1, e2, e3);
 const bb = b((res) => {
   switch (res.e) {
     case "EEE1":
