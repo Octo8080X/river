@@ -11,7 +11,7 @@ import {
 } from "./lib.ts";
 
 Deno.test("Result型 - 失敗ケース: 最初の関数で失敗", async () => {
-  const f1 = () => failure(null, ["初期エラー"]);
+  const f1 = () => failure(null, "初期エラー");
   const f2 = (n: number) => success(n * 2);
 
   const pipeline = pipeAsyncResult(f1, f2);
@@ -19,7 +19,7 @@ Deno.test("Result型 - 失敗ケース: 最初の関数で失敗", async () => {
   
   assertEquals(isFailure(result), true);
   if (isFailure(result)) {
-    assertEquals(result.errors, ["初期エラー"]);
+    assertEquals(result.error, "初期エラー");
     assertEquals(result.value, null);
   }
 });
@@ -28,7 +28,7 @@ Deno.test("Result型 - 失敗ケース: 途中の関数で失敗", async () => {
   const f1 = () => success(10);
   const f2 = (n: number) => {
     if (n > 5) {
-      return failure(n, ["値が大きすぎます"]);
+      return failure(n, "値が大きすぎます");
     }
     return success(n * 2);
   };
@@ -39,7 +39,7 @@ Deno.test("Result型 - 失敗ケース: 途中の関数で失敗", async () => {
   
   assertEquals(isFailure(result), true);
   if (isFailure(result)) {
-    assertEquals(result.errors, ["値が大きすぎます"]);
+    assertEquals(result.error, "値が大きすぎます");
     assertEquals(result.value, 10); // エラー時の引数内容
   }
 });
@@ -62,7 +62,7 @@ Deno.test("Result型 - 複雑な型変換パイプライン", async () => {
   const f1 = () => success("123");
   const f2 = (s: string) => {
     const num = parseInt(s);
-    return isNaN(num) ? failure(s, ["数値変換エラー"]) : success(num);
+    return isNaN(num) ? failure(s, "数値変換エラー") : success(num);
   };
   const f3 = (n: number) => success(n * 2);
   const f4 = (n: number) => success(`結果: ${n}`);
@@ -80,7 +80,7 @@ Deno.test("Result型 - 数値変換エラーケース", async () => {
   const f1 = () => success("abc");
   const f2 = (s: string) => {
     const num = parseInt(s);
-    return isNaN(num) ? failure(s, ["数値変換エラー"]) : success(num);
+    return isNaN(num) ? failure(s, "数値変換エラー") : success(num);
   };
   const f3 = (n: number) => success(n * 2);
   
@@ -89,7 +89,7 @@ Deno.test("Result型 - 数値変換エラーケース", async () => {
   
   assertEquals(isFailure(result), true);
   if (isFailure(result)) {
-    assertEquals(result.errors, ["数値変換エラー"]);
+    assertEquals(result.error, "数値変換エラー");
   }
 });
 
@@ -160,7 +160,7 @@ Deno.test("Result型 - 途中でエラーが発生する長いパイプライン
   const f4 = (n: number) => success(n + 5);    // 45
   const f5 = (n: number) => {
     if (n > 40) {
-      return failure(n, ["値が40を超えています"]);
+      return failure(n, "値が40を超えています");
     }
     return success(n * 2);
   };
@@ -172,7 +172,7 @@ Deno.test("Result型 - 途中でエラーが発生する長いパイプライン
   
   assertEquals(isFailure(result), true);
   if (isFailure(result)) {
-    assertEquals(result.errors, ["値が40を超えています"]);
+    assertEquals(result.error, "値が40を超えています");
   }
 });
 
@@ -180,7 +180,7 @@ Deno.test("Result型 - エラー復帰機能: エラー時の引数内容確認"
   const f1 = () => success(100);
   const f2 = (n: number) => {
     if (n > 50) {
-      return failure(n, ["値が大きすぎます"]);
+      return failure(n, "値が大きすぎます");
     }
     return success(n * 2);
   };
@@ -192,7 +192,7 @@ Deno.test("Result型 - エラー復帰機能: エラー時の引数内容確認"
   
   assertEquals(isFailure(result), true);
   if (isFailure(result)) {
-    assertEquals(result.errors, ["値が大きすぎます"]);
+    assertEquals(result.error, "値が大きすぎます");
     assertEquals(result.value, 100); // エラー時の引数内容が保持されている
   }
 });
@@ -212,7 +212,7 @@ Deno.test("Result型 - エラー復帰機能: 途中の関数のエラーから�
   // 復帰関数: エラーが発生したら最終的な値を返す（パイプライン処理は終了）
   // deno-lint-ignore no-explicit-any
   const recoveryFunc = (error: any) => {
-    console.log("途中でエラーを検出:", error.errors);
+    console.log("途中でエラーを検出:", error.error);
     console.log("エラー時の引数（型制約あり）:", error.value); // numberとして推論される
     return success(200); // エラー復帰時の最終値
   };
@@ -231,7 +231,7 @@ Deno.test("Result型 - エラー復帰機能: エラー時の引数内容を使�
   const f2 = (s: string) => {
     const num = parseInt(s);
     if (isNaN(num)) {
-      return failure(s, ["数値変換エラー"]);
+      return failure(s, "数値変換エラー");
     }
     return success(num);
   };
@@ -243,7 +243,7 @@ Deno.test("Result型 - エラー復帰機能: エラー時の引数内容を使�
   
   assertEquals(isFailure(result), true);
   if (isFailure(result)) {
-    assertEquals(result.errors, ["数値変換エラー"]);
+    assertEquals(result.error, "数値変換エラー");
     assertEquals(result.value, "invalid_number"); // エラー時の引数内容
   }
 });
@@ -259,7 +259,7 @@ Deno.test("Result型 - エラー復帰機能: エラーが発生しない場合�
   // deno-lint-ignore no-explicit-any
   const recoveryFunc = (error: any) => {
     recoveryCallCount++;
-    console.log("復帰処理が呼ばれました:", error.errors);
+    console.log("復帰処理が呼ばれました:", error.error);
     return success(999);
   };
   
@@ -276,7 +276,7 @@ Deno.test("Result型 - エラー復帰機能: エラーが発生しない場合�
 
 Deno.test("Result型 - エラー復帰機能なし: 従来通りの動作", async () => {
   const f1 = () => success(5);
-  const f2 = (_n: number) => failure(0, ["途中エラー"]);
+  const f2 = (_n: number) => failure(0, "途中エラー");
   const f3 = (n: number) => success(n + 10);
   
   const pipeline = pipeAsyncResult(f1, f2, f3);
@@ -286,7 +286,7 @@ Deno.test("Result型 - エラー復帰機能なし: 従来通りの動作", asyn
   
   assertEquals(isFailure(result), true);
   if (isFailure(result)) {
-    assertEquals(result.errors, ["途中エラー"]);
+    assertEquals(result.error, "途中エラー");
   }
 });
 
@@ -306,7 +306,7 @@ Deno.test("test with throw", async () => {
   
   assertEquals(isFailure(result), true);
   if (isFailure(result)) {
-    assertEquals(result.errors, ["Test error"]);
+    assertEquals(result.error, "Test error");
     assertEquals(result.value, 1); // f2の引数として渡された値
   }
 });
@@ -322,7 +322,7 @@ Deno.test("Result型 - throw処理: 最初の関数でthrow", async () => {
   
   assertEquals(isFailure(result), true);
   if (isFailure(result)) {
-    assertEquals(result.errors, ["初期関数でエラー"]);
+    assertEquals(result.error, "初期関数でエラー");
     assertEquals(result.value, null);
   }
 });
@@ -342,7 +342,7 @@ Deno.test("Result型 - throw処理: 途中の関数でthrow", async () => {
   
   assertEquals(isFailure(result), true);
   if (isFailure(result)) {
-    assertEquals(result.errors, ["値が大きすぎます"]);
+    assertEquals(result.error, "値が大きすぎます");
     assertEquals(result.value, 100); // throw時の引数内容
   }
 });
@@ -360,7 +360,7 @@ Deno.test("Result型 - throw処理: 非同期関数でthrow", async () => {
   
   assertEquals(isFailure(result), true);
   if (isFailure(result)) {
-    assertEquals(result.errors, ["非同期エラー: test"]);
+    assertEquals(result.error, "非同期エラー: test");
     assertEquals(result.value, "test");
   }
 });
@@ -376,7 +376,7 @@ Deno.test("Result型 - throw処理: 文字列をthrow", async () => {
   
   assertEquals(isFailure(result), true);
   if (isFailure(result)) {
-    assertEquals(result.errors, ["文字列エラー"]);
+    assertEquals(result.error, "文字列エラー");
     assertEquals(result.value, 10);
   }
 });
@@ -393,10 +393,10 @@ Deno.test("Result型 - throw処理: エラー復帰機能と組み合わせ", as
   
   // 型注釈なしでrecoveryFuncを定義し、"ERROR 1" | "ERROR 2"のUnion型として自動推論
   const recoveryFunc = (error: ResultFailure<string, unknown>) => {
-    console.log("throwをキャッチ:", error.errors);
+    console.log("throwをキャッチ:", error.error);
     console.log("エラー時の引数:", error.value);
     // 型チェック: エラーが期待されるリテラル型であることを確認
-    if (error.errors.includes("ERROR 1") || error.errors.includes("ERROR 2")) {
+    if (error.error.includes("ERROR 1") || error.error.includes("ERROR 2")) {
       console.log("期待されるエラー型が推論されています");
     }
     return success(999); // 復帰値
@@ -414,7 +414,7 @@ Deno.test("Result型 - throw処理: Result型とthrowの混在", async () => {
   const f1 = () => success(5);
   const f2 = (n: number) => {
     if (n < 10) {
-      return failure(n, ["Result型エラー"]);
+      return failure(n, "Result型エラー");
     }
     return success(n * 2);
   };
@@ -428,7 +428,7 @@ Deno.test("Result型 - throw処理: Result型とthrowの混在", async () => {
   // f2でResult型エラーが発生するため、f3は実行されない
   assertEquals(isFailure(result), true);
   if (isFailure(result)) {
-    assertEquals(result.errors, ["Result型エラー"]);
+    assertEquals(result.error, "Result型エラー");
     assertEquals(result.value, 5);
   }
 });
@@ -621,15 +621,13 @@ Deno.test("Result型 - 型推論テスト: 厳密なエラー型推論", async (
   // 理想的には、errorの型は以下のようになるべき：
   // ResultFailure<"VALIDATION_ERROR" | "PARSE_ERROR", number | string>
   const result = await pipeline.run((error) => {
-    console.log("エラー型テスト - エラー:", error.errors);
+    console.log("エラー型テスト - エラー:", error.error);
     console.log("エラー型テスト - 値:", error.value);
-    console.log("エラー型テスト - エラー配列の型:", typeof error.errors[0]);
+    console.log("エラー型テスト - エラー配列の型:", typeof error.error[0]);
     
     // 実行時チェック：期待されるエラー型
-    const hasExpectedError = error.errors.some((err: unknown) => 
-      err === "VALIDATION_ERROR" || err === "PARSE_ERROR"
-    );
-    
+    const hasExpectedError = error.error === "VALIDATION_ERROR" || error.error === "PARSE_ERROR";
+
     if (hasExpectedError) {
       console.log("✓ 期待されるエラー型が検出されました");
     }
@@ -663,8 +661,8 @@ Deno.test("Result型 - 自動型推論: リテラル型のUnion型を推論", as
   // recoveryFuncで型注釈なしで "TYPE_A_ERROR" | "TYPE_B_ERROR" のUnion型が推論されるか
   // deno-lint-ignore no-explicit-any
   const result = await pipeline.run((error: any) => {
-    // 型推論の検証: error.errorsがリテラル型の配列であることをチェック
-    const errorTypes = error.errors;
+    // 型推論の検証: error.errorがリテラル型の配列であることをチェック
+    const errorTypes = error.error;
     
     // リテラル型の判定
     if (errorTypes.includes("TYPE_A_ERROR")) {
@@ -704,8 +702,8 @@ Deno.test("Result型 - 改良型推論: 関数Aのアプローチでリテラル
   
   // 型推論を検証するために手動でエラーを発生させる
   const result = await pipeline.run(error => {
-    // error.errorsは "IMPROVED_ERROR_1" | "IMPROVED_ERROR_2" のリテラル型を保持
-    const errorType = error.errors[0];
+    // error.errorは "IMPROVED_ERROR_1" | "IMPROVED_ERROR_2" のリテラル型を保持
+    const errorType = error.error[0];
     
     // 条件分岐でリテラル型を使用
     if (errorType === "IMPROVED_ERROR_1") {
