@@ -1,4 +1,4 @@
-import { failure, MaybePromise, pipeline, type Result, success } from "./lib.ts";
+import { failure, pipeline, type Result, success } from "./lib.ts";
 import { assertEquals } from "@std/assert";
 import { delay } from "@std/async";
 
@@ -32,23 +32,16 @@ Deno.test("pipeline with recovery function", async () => {
   const fn7 = (): Result<number, "E7"> => failure(1, "E7");
   const fn8 = (input: number): Result<string, "E8"> => success(input + "2");
 
-  const p = await pipeline([fn7, fn8]);
+  const p = pipeline([fn7, fn8]);
   const result = await p(
-    (error): MaybePromise<Result<number, "E7">|Result<string, "E8">|Result<boolean, "Recovered">> => {
-        return failure(false, "Recovered");
-        //if(error.error === "E7") {
-        //    return failure(error.value, "E7");
-        //}
-        //if(error.error === "E8") {
-        //    return failure(error.value, "E8");
-        //}
+    (error): Result<number, "E7">|Result<string, "E8">|Result<boolean, "Recovered"> => {
+        if(error.error === "E8") {
+            return failure(error.value, "E8");
+        }
+        return failure<boolean, "Recovered">(false, "Recovered");
+        
     }
   );
 
-  //if(!result.isSuccess){
-  //  result.error
-  //  failure(false, "Recovered");
-  //}
-
-  assertEquals(result, failure(false, "Recovered"));
+  assertEquals(result, failure<boolean, "Recovered">(false, "Recovered"));
 });
