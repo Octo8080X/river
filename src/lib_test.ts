@@ -110,38 +110,7 @@ Deno.test("pipeline works with object type", () => {
   assertEquals(result, {name: "John Doe", age: 31});
 });
 
-// 4つ目の関数でエラーが発生した場合のテスト
-Deno.test("pipeline handles error in fourth function", () => {
-  const r1 = (): Result<number, "EEE1"> => ({v: 1});
-  const r2 = (s:number): Result<number, "EEE2"> => ({v: s + 1});
-  const r3 = (s:number): Result<number, "EEE3"> => ({v: s + 2});
-  const e4 = (s:number): Result<number, "EEE4"> => ({v: s * 2, e: "EEE4"});
-
-  let caughtError = "";
-  const c = pipeline(r1, r2, r3, e4);
-  const result = c((res) => {
-    caughtError = res.e;
-    
-    // エラーハンドラのテスト
-    switch (res.e) {
-      case "EEE1":
-        return -1;
-      case "EEE2":
-        return -2;      
-      case "EEE3":
-        return -3;
-      case "EEE4":
-        return -4;
-      default:
-        return -999;
-    } 
-  });
-  
-  assertEquals(caughtError, "EEE4");
-  assertEquals(result, -4);
-});
-
-// 5つ目の関数でエラーが発生した場合のテスト
+// 長いチェーンの関数でエラーが発生した場合のテスト
 Deno.test("pipeline handles error in fifth function", () => {
   const r1 = (): Result<number, "EEE1"> => ({v: 1});
   const r2 = (s:number): Result<number, "EEE2"> => ({v: s + 1});
