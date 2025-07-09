@@ -51,8 +51,7 @@ Deno.test("pipeline handles longer successful chain", () => {
   const r5 = (s:number): Result<number, "EEE5"> => ({v: s - 1});
 
   const p = pipeline(r1, r2, r3, r4, r5);
-  const result = p(undefined);
-  
+  const result = p();
   assertEquals(result, 7); // (1 + 1 + 2) * 2 - 1 = 7
 });
 
@@ -63,7 +62,7 @@ Deno.test("pipeline returns original value when error occurs without handler", (
   const r3 = (s:number): Result<number, "EEE3"> => ({v: s + 2});
 
   const p = pipeline(e1, r2, r3);
-  const result = p(undefined); // エラーハンドラなし
+  const result = p(); // エラーハンドラなし
   
   assertEquals(result, 999); // エラー発生時に元の値が返る
 });
@@ -92,8 +91,8 @@ Deno.test("pipeline works with string type", () => {
   const r3 = (s:string): Result<string, "STR3"> => ({v: s + "!"});
 
   const p = pipeline(r1, r2, r3);
-  const result = p(undefined);
-  
+  const result = p();
+
   assertEquals(result, "hello world!");
 });
 
@@ -106,8 +105,8 @@ Deno.test("pipeline works with object type", () => {
   const r3 = (u:User): Result<User, "USER3"> => ({v: {...u, name: u.name + " Doe"}});
 
   const p = pipeline(r1, r2, r3);
-  const result = p(undefined);
-  
+  const result = p();
+
   assertEquals(result, {name: "John Doe", age: 31});
 });
 
