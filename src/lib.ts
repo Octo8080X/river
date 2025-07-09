@@ -22,17 +22,23 @@ export type Result<T, F> = ResultSuccess<T> | ResultFailure<T, F>;
 type UnwrapResult<T> = T extends Result<infer U, any> ? U : never;
 type UnwrapError<T> = T extends Result<any, infer E> ? E : never;
 
-// 1. 0つの関数のケース
+/**
+ * Pipeline function overloads
+ * 
+ * These overloads provide type-safety for pipelines with different numbers of functions.
+ * Each overload handles a specific number of functions (from 0 to 10) and properly
+ * tracks the type transformations and error union types through the pipeline.
+ */
+
+// Case with 0 functions
 export function pipeline(): <T, E>() => Result<T, E>;
 
-// 2. 1つの関数のケース
 export function pipeline<A, E1>(
   fn1: () => Result<A, E1>,
 ): (
   errorHandler?: (res: ResultFailure<any, E1>) => Result<A, E1>,
 ) => Result<A, E1>;
 
-// 3. 2つの関数のケース
 export function pipeline<A, B, E1, E2>(
   fn1: () => Result<A, E1>,
   fn2: (a: A) => Result<B, E2>,
@@ -40,7 +46,6 @@ export function pipeline<A, B, E1, E2>(
   errorHandler?: (res: ResultFailure<any, E1 | E2>) => Result<B, E1 | E2>,
 ) => Result<B, E1 | E2>;
 
-// 4. 3つの関数のケース
 export function pipeline<A, B, C, E1, E2, E3>(
   fn1: () => Result<A, E1>,
   fn2: (a: A) => Result<B, E2>,
@@ -51,7 +56,6 @@ export function pipeline<A, B, C, E1, E2, E3>(
   ) => Result<C, E1 | E2 | E3>,
 ) => Result<C, E1 | E2 | E3>;
 
-// 5. 4つの関数のケース
 export function pipeline<A, B, C, D, E1, E2, E3, E4>(
   fn1: () => Result<A, E1>,
   fn2: (a: A) => Result<B, E2>,
@@ -63,7 +67,6 @@ export function pipeline<A, B, C, D, E1, E2, E3, E4>(
   ) => Result<D, E1 | E2 | E3 | E4>,
 ) => Result<D, E1 | E2 | E3 | E4>;
 
-// 6. 5つの関数のケース
 export function pipeline<A, B, C, D, E, E1, E2, E3, E4, E5>(
   fn1: () => Result<A, E1>,
   fn2: (a: A) => Result<B, E2>,
@@ -76,7 +79,6 @@ export function pipeline<A, B, C, D, E, E1, E2, E3, E4, E5>(
   ) => Result<E, E1 | E2 | E3 | E4 | E5>,
 ) => Result<E, E1 | E2 | E3 | E4 | E5>;
 
-// 7. 6つの関数のケース
 export function pipeline<A, B, C, D, E, F, E1, E2, E3, E4, E5, E6>(
   fn1: () => Result<A, E1>,
   fn2: (a: A) => Result<B, E2>,
@@ -90,7 +92,6 @@ export function pipeline<A, B, C, D, E, F, E1, E2, E3, E4, E5, E6>(
   ) => Result<F, E1 | E2 | E3 | E4 | E5 | E6>,
 ) => Result<F, E1 | E2 | E3 | E4 | E5 | E6>;
 
-// 8. 7つの関数のケース
 export function pipeline<A, B, C, D, E, F, G, E1, E2, E3, E4, E5, E6, E7>(
   fn1: () => Result<A, E1>,
   fn2: (a: A) => Result<B, E2>,
@@ -105,7 +106,6 @@ export function pipeline<A, B, C, D, E, F, G, E1, E2, E3, E4, E5, E6, E7>(
   ) => Result<G, E1 | E2 | E3 | E4 | E5 | E6 | E7>,
 ) => Result<G, E1 | E2 | E3 | E4 | E5 | E6 | E7>;
 
-// 9. 8つの関数のケース
 export function pipeline<
   A,
   B,
@@ -138,7 +138,6 @@ export function pipeline<
   ) => Result<H, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8>,
 ) => Result<H, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8>;
 
-// 10. 9つの関数のケース
 export function pipeline<
   A,
   B,
@@ -174,7 +173,6 @@ export function pipeline<
   ) => Result<I, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9>,
 ) => Result<I, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9>;
 
-// 11. 10つの関数のケース
 export function pipeline<
   A,
   B,
@@ -213,9 +211,9 @@ export function pipeline<
   ) => Result<J, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9 | E10>,
 ) => Result<J, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9 | E10>;
 
-// パイプライン関数の実装: 複数の関数を連結してデータを順次処理する
+// Pipeline function implementation: Connects multiple functions to process data sequentially
 export function pipeline(...fns: Array<(arg?: any) => Result<any, any>>): any {
-  // 実際の実装
+  // Actual implementation
   return (
     errorHandler?: (res: ResultFailure<any, any>) => Result<any, any>,
   ): Result<any, any> => {
@@ -223,21 +221,21 @@ export function pipeline(...fns: Array<(arg?: any) => Result<any, any>>): any {
       return success(undefined);
     }
 
-    // 最初の関数を実行
+    // Execute the first function
     const first = fns[0];
     const currentResult = first();
 
-    // 非同期の場合
+    // Handle asynchronous case
     if (currentResult instanceof Promise) {
       return handleAsyncPipeline(fns, errorHandler) as any;
     }
 
-    // 同期処理
+    // Synchronous processing
     if (!currentResult.isSuccess) {
       return handleError(currentResult, errorHandler);
     }
 
-    // 残りの関数を順番に実行
+    // Execute the remaining functions in sequence
     let currentValue = currentResult.value;
 
     for (let i = 1; i < fns.length; i++) {
@@ -255,7 +253,7 @@ export function pipeline(...fns: Array<(arg?: any) => Result<any, any>>): any {
   };
 }
 
-// エラー処理用ヘルパー関数
+// Helper function for error handling
 function handleError<T, E>(
   result: ResultFailure<T, E>,
   errorHandler?: (res: ResultFailure<any, E>) => Result<any, any>,
@@ -266,7 +264,7 @@ function handleError<T, E>(
   return failure(result.value, result.error);
 }
 
-// 非同期パイプラインの処理
+// Handling asynchronous pipeline
 async function handleAsyncPipeline(
   fns: Array<(arg?: any) => Result<any, any> | Promise<Result<any, any>>>,
   errorHandler?: (
@@ -274,7 +272,7 @@ async function handleAsyncPipeline(
   ) => Result<any, any> | Promise<Result<any, any>>,
 ): Promise<Result<any, any>> {
   try {
-    // 最初の関数を実行
+    // Execute the first function
     const first = fns[0];
     const currentResult = await first();
 
@@ -284,7 +282,7 @@ async function handleAsyncPipeline(
         : failure(currentResult.value, currentResult.error);
     }
 
-    // 残りの関数を順番に実行
+    // Execute the remaining functions in sequence
     let currentValue = currentResult.value;
 
     for (let i = 1; i < fns.length; i++) {
@@ -302,7 +300,7 @@ async function handleAsyncPipeline(
 
     return success(currentValue);
   } catch (error) {
-    // 予期せぬエラーの処理
+    // Handle unexpected errors
     return failure(null, error as any);
   }
 }
