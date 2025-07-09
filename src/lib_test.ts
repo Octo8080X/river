@@ -1,4 +1,4 @@
-import { assertEquals } from "https://deno.land/std@0.192.0/testing/asserts.ts";
+import { assertEquals } from "@std/assert";
 import { pipeline, Result,success, failure } from './lib.ts';
 
 // 1. 最もシンプルな成功ケース（number型のみ、3つの関数）
@@ -10,6 +10,10 @@ Deno.test("pipeline handles successful execution", () => {
   // 型推論によってエラー型は "EEE1" | "EEE2" | "EEE3" になる
   const a = pipeline(r1, r2, r3);
   const result = a();
+
+  if(! result.isSuccess) {
+    assertEquals(result.error, "EEE1");
+  }
 
   assertEquals(result.isSuccess, true);
   if (result.isSuccess) {
