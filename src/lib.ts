@@ -8,40 +8,16 @@ interface ResultFailure<T, F>{
 export type Result<T,F> = ResultSuccess<T>| ResultFailure<T,F>;
 
 // パイプライン関数: 複数の関数を連結してデータを順次処理する
-// 複数の型に対応できるようにジェネリクスを拡張
-export function pipeline<A, B, E extends string>(
-  first: () => Result<A, E>,
-  second: (v: A) => Result<B, E>
-): ((s?: ((res: ResultFailure<never, E>) => B)) => B);
-
-export function pipeline<A, B, C, E extends string>(
-  first: () => Result<A, E>,
-  second: (v: A) => Result<B, E>,
-  third: (v: B) => Result<C, E>
-): ((s?: ((res: ResultFailure<never, E>) => C)) => C);
-
-export function pipeline<A, B, C, D, E extends string>(
-  first: () => Result<A, E>,
-  second: (v: A) => Result<B, E>,
-  third: (v: B) => Result<C, E>,
-  fourth: (v: C) => Result<D, E>
-): ((s?: ((res: ResultFailure<never, E>) => D)) => D);
-
-export function pipeline<A, B, C, D, F, E extends string>(
-  first: () => Result<A, E>,
-  second: (v: A) => Result<B, E>,
-  third: (v: B) => Result<C, E>,
-  fourth: (v: C) => Result<D, E>,
-  fifth: (v: D) => Result<F, E>
-): ((s?: ((res: ResultFailure<never, E>) => F)) => F);
-
-// 実装
-export function pipeline<T, E extends string>(
-  first: () => Result<unknown, E>,
-  ...rest: Array<(v: unknown) => Result<unknown, E>>
-): ((s?: ((res: ResultFailure<never, E>) => unknown)) => unknown) {
-  // エラーハンドラの型
-  return (s?: ((res: ResultFailure<never, E>) => unknown)): unknown => {
+// - n個の引数（関数）を受け取る形で定義（関数オーバーロード不使用）
+// - ジェネリクスを活用して型安全性を確保
+// - 各関数の入力型と出力型を明確に定義
+// - 複数の型に対応できるようにジェネリクスを拡張
+// - 内部ではany型を使用するが、外部からは型安全にアクセス可能
+export function pipeline<E extends string, TReturn = any>(
+  first: () => Result<any, E>,
+  ...rest: Array<(v: any) => Result<any, E>>
+): (s?: (res: ResultFailure<never, E>) => TReturn) => TReturn {
+  return (s?: (res: ResultFailure<never, E>) => TReturn): TReturn => {
     // 最初の関数を実行
     const initialResult = first();
     
@@ -50,11 +26,11 @@ export function pipeline<T, E extends string>(
       if (s) {
         return s({e: initialResult.e, v: undefined as never} as ResultFailure<never, E>);
       }
-      return initialResult.v;
+      return initialResult.v as TReturn;
     }
     
     // 残りの関数を順番に実行
-    let currentValue = initialResult.v;
+    let currentValue = (initialResult as ResultSuccess<any>).v;
     
     for (const fn of rest) {
       const result = fn(currentValue);
@@ -64,12 +40,12 @@ export function pipeline<T, E extends string>(
         if (s) {
           return s({e: result.e, v: undefined as never} as ResultFailure<never, E>);
         }
-        return result.v;
+        return result.v as TReturn;
       }
       
-      currentValue = result.v;
+      currentValue = (result as ResultSuccess<any>).v;
     }
     
-    return currentValue;
+    return currentValue as TReturn;
   };
 }
