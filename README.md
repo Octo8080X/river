@@ -15,13 +15,13 @@ design.md の要件に基づいて実装されたパイプライン関数です�
 ### 基本的な使用法
 
 ```typescript
-import { pipeline, success, failure, Result } from './mod.ts';
+import { failure, pipeline, Result, success } from "./mod.ts";
 
 // 同期関数のパイプライン
 const syncPipeline = pipeline(
   (): Result<number, "ERR1"> => success(1),
   (n: number): Result<string, "ERR2"> => success(n.toString()),
-  (s: string): Result<boolean, "ERR3"> => success(s.length > 0)
+  (s: string): Result<boolean, "ERR3"> => success(s.length > 0),
 );
 
 const result = await syncPipeline();
@@ -33,10 +33,10 @@ const result = await syncPipeline();
 const mixedPipeline = pipeline(
   (): Result<number, "ERR1"> => success(42),
   async (n: number): Promise<Result<string, "ERR2">> => {
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
     return success(n.toString());
   },
-  (s: string): Result<boolean, "ERR3"> => success(s.length > 1)
+  (s: string): Result<boolean, "ERR3"> => success(s.length > 1),
 );
 
 const result = await mixedPipeline();
@@ -47,16 +47,21 @@ const result = await mixedPipeline();
 ```typescript
 const errorHandlingPipeline = pipeline(
   (): Result<number, "DB_ERROR"> => success(42),
-  (n: number): Result<string, "VALIDATION_ERROR"> => 
-    n > 0 ? success(n.toString()) : failure("Invalid input", "VALIDATION_ERROR"),
-  (s: string): Result<boolean, "PROCESSING_ERROR"> => success(s.length > 0)
+  (n: number): Result<string, "VALIDATION_ERROR"> =>
+    n > 0
+      ? success(n.toString())
+      : failure("Invalid input", "VALIDATION_ERROR"),
+  (s: string): Result<boolean, "PROCESSING_ERROR"> => success(s.length > 0),
 );
 
 // エラーハンドラを使用してエラーをキャッチし、代替結果を返す
 const result = await errorHandlingPipeline((error) => {
   // 型アサーションでエラー型を特定
-  const errorType = error.error as "DB_ERROR" | "VALIDATION_ERROR" | "PROCESSING_ERROR";
-  
+  const errorType = error.error as
+    | "DB_ERROR"
+    | "VALIDATION_ERROR"
+    | "PROCESSING_ERROR";
+
   console.log(`エラーが発生しました: ${errorType}`);
   return success(false); // 代替の結果を返す
 });
@@ -73,7 +78,7 @@ const result = await errorHandlingPipeline((error) => {
 const pipeline1 = pipeline(
   (): Result<number, "ERR1"> => success(1),
   (n: number): Result<string, "ERR2"> => success(n.toString()),
-  (s: string): Result<boolean, "ERR3"> => success(s.length > 0)
+  (s: string): Result<boolean, "ERR3"> => success(s.length > 0),
 );
 
 // result.valueはboolean型として推論されます
@@ -83,15 +88,22 @@ if (result.isSuccess) {
 }
 
 // オブジェクト型も推論されます
-interface User { id: number; name: string; }
-interface UserProfile { userId: string; displayName: string; }
+interface User {
+  id: number;
+  name: string;
+}
+interface UserProfile {
+  userId: string;
+  displayName: string;
+}
 
 const pipeline2 = pipeline(
-  (): Result<User, "USER_ERR"> => success({id: 1, name: "John"}),
-  (user: User): Result<UserProfile, "PROFILE_ERR"> => success({
-    userId: `user-${user.id}`,
-    displayName: user.name.toUpperCase()
-  })
+  (): Result<User, "USER_ERR"> => success({ id: 1, name: "John" }),
+  (user: User): Result<UserProfile, "PROFILE_ERR"> =>
+    success({
+      userId: `user-${user.id}`,
+      displayName: user.name.toUpperCase(),
+    }),
 );
 
 // result.valueはUserProfile型として推論されます
@@ -108,7 +120,7 @@ TypeScriptの制限により、エラー型のunion型の完全な推論には�
 ```typescript
 const p = pipeline(
   (): Result<number, "E1"> => success(1),
-  (n: number): Result<string, "E2"> => success(n.toString())
+  (n: number): Result<string, "E2"> => success(n.toString()),
 );
 
 const result = await p();
@@ -127,7 +139,8 @@ if (!result.isSuccess) {
 ## 実装詳細
 
 - `Result<T, F>` 型: 成功と失敗を表現する統一型
-- 再帰的な型定義 (`ExtractErrorUnion<T>`, `ExtractFinalType<T>`) でパイプライン内の型を抽出
+- 再帰的な型定義 (`ExtractErrorUnion<T>`, `ExtractFinalType<T>`)
+  でパイプライン内の型を抽出
 - 統一されたpipeline関数: 同期・非同期両方に対応
 - 内部ではanyを使用しつつ、外部からは型安全なインターフェースを提供
 - constアサーションと組み合わせた型推論の強化
@@ -137,7 +150,7 @@ if (!result.isSuccess) {
 const strictPipeline = pipeline<"E1" | "E2", string>(
   (): Result<number, "ERR1"> => success(42),
   (n: number): Result<string, "ERR2"> => success(n.toString()),
-  (s: string): Result<boolean, "ERR3"> => success(s.length > 1)
+  (s: string): Result<boolean, "ERR3"> => success(s.length > 1),
 );
 
 // result.value は boolean 型として正しく推論される
@@ -149,7 +162,7 @@ const result = await typedPipeline();
 ```typescript
 const pipeline = pipeline<"ERR1" | "ERR2", string>(
   (): Result<number, "ERR1"> => failure(999, "ERR1"),
-  (n: number): Result<string, "ERR2"> => success(n.toString())
+  (n: number): Result<string, "ERR2"> => success(n.toString()),
 );
 
 const result = await pipeline((error) => {
@@ -165,15 +178,16 @@ const result = await pipeline((error) => {
 パイプライン関数を作成します。
 
 **型パラメータ:**
+
 - `E`: エラー型のユニオン
 - `TReturn`: 最終戻り値の型
 
 **引数:**
+
 - `first`: 最初の関数（引数なし）
 - `...rest`: 残りの関数（前の関数の戻り値を受け取る）
 
-**戻り値:**
-エラーハンドラを受け取り、`Promise<Result<TReturn, E>>`を返す関数
+**戻り値:** エラーハンドラを受け取り、`Promise<Result<TReturn, E>>`を返す関数
 
 ### Result<T, F>
 
@@ -198,10 +212,10 @@ interface ResultFailure<T, F> {
 
 ```typescript
 // 成功結果を作成
-function success<T>(value: T): Result<T, never>
+function success<T>(value: T): Result<T, never>;
 
-// 失敗結果を作成  
-function failure<T, F>(value: T, error: F): Result<T, F>
+// 失敗結果を作成
+function failure<T, F>(value: T, error: F): Result<T, F>;
 ```
 
 ## design.md 要件との対応

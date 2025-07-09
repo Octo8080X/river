@@ -1,8 +1,8 @@
-interface ResultSuccess<T>{
+interface ResultSuccess<T> {
   isSuccess: true;
   value: T;
 }
-interface ResultFailure<T, F>{
+interface ResultFailure<T, F> {
   isSuccess: false;
   value: T;
   error: F;
@@ -27,29 +27,41 @@ export function pipeline(): <T, E>() => Result<T, E>;
 
 // 2. 1つの関数のケース
 export function pipeline<A, E1>(
-  fn1: () => Result<A, E1>
-): (errorHandler?: (res: ResultFailure<any, E1>) => Result<A, E1>) => Result<A, E1>;
+  fn1: () => Result<A, E1>,
+): (
+  errorHandler?: (res: ResultFailure<any, E1>) => Result<A, E1>,
+) => Result<A, E1>;
 
 // 3. 2つの関数のケース
 export function pipeline<A, B, E1, E2>(
   fn1: () => Result<A, E1>,
-  fn2: (a: A) => Result<B, E2>
-): (errorHandler?: (res: ResultFailure<any, E1 | E2>) => Result<B, E1 | E2>) => Result<B, E1 | E2>;
+  fn2: (a: A) => Result<B, E2>,
+): (
+  errorHandler?: (res: ResultFailure<any, E1 | E2>) => Result<B, E1 | E2>,
+) => Result<B, E1 | E2>;
 
 // 4. 3つの関数のケース
 export function pipeline<A, B, C, E1, E2, E3>(
   fn1: () => Result<A, E1>,
   fn2: (a: A) => Result<B, E2>,
-  fn3: (b: B) => Result<C, E3>
-): (errorHandler?: (res: ResultFailure<any, E1 | E2 | E3>) => Result<C, E1 | E2 | E3>) => Result<C, E1 | E2 | E3>;
+  fn3: (b: B) => Result<C, E3>,
+): (
+  errorHandler?: (
+    res: ResultFailure<any, E1 | E2 | E3>,
+  ) => Result<C, E1 | E2 | E3>,
+) => Result<C, E1 | E2 | E3>;
 
 // 5. 4つの関数のケース
 export function pipeline<A, B, C, D, E1, E2, E3, E4>(
   fn1: () => Result<A, E1>,
   fn2: (a: A) => Result<B, E2>,
   fn3: (b: B) => Result<C, E3>,
-  fn4: (c: C) => Result<D, E4>
-): (errorHandler?: (res: ResultFailure<any, E1 | E2 | E3 | E4>) => Result<D, E1 | E2 | E3 | E4>) => Result<D, E1 | E2 | E3 | E4>;
+  fn4: (c: C) => Result<D, E4>,
+): (
+  errorHandler?: (
+    res: ResultFailure<any, E1 | E2 | E3 | E4>,
+  ) => Result<D, E1 | E2 | E3 | E4>,
+) => Result<D, E1 | E2 | E3 | E4>;
 
 // 6. 5つの関数のケース
 export function pipeline<A, B, C, D, E, E1, E2, E3, E4, E5>(
@@ -57,8 +69,12 @@ export function pipeline<A, B, C, D, E, E1, E2, E3, E4, E5>(
   fn2: (a: A) => Result<B, E2>,
   fn3: (b: B) => Result<C, E3>,
   fn4: (c: C) => Result<D, E4>,
-  fn5: (d: D) => Result<E, E5>
-): (errorHandler?: (res: ResultFailure<any, E1 | E2 | E3 | E4 | E5>) => Result<E, E1 | E2 | E3 | E4 | E5>) => Result<E, E1 | E2 | E3 | E4 | E5>;
+  fn5: (d: D) => Result<E, E5>,
+): (
+  errorHandler?: (
+    res: ResultFailure<any, E1 | E2 | E3 | E4 | E5>,
+  ) => Result<E, E1 | E2 | E3 | E4 | E5>,
+) => Result<E, E1 | E2 | E3 | E4 | E5>;
 
 // 7. 6つの関数のケース
 export function pipeline<A, B, C, D, E, F, E1, E2, E3, E4, E5, E6>(
@@ -67,8 +83,12 @@ export function pipeline<A, B, C, D, E, F, E1, E2, E3, E4, E5, E6>(
   fn3: (b: B) => Result<C, E3>,
   fn4: (c: C) => Result<D, E4>,
   fn5: (d: D) => Result<E, E5>,
-  fn6: (e: E) => Result<F, E6>
-): (errorHandler?: (res: ResultFailure<any, E1 | E2 | E3 | E4 | E5 | E6>) => Result<F, E1 | E2 | E3 | E4 | E5 | E6>) => Result<F, E1 | E2 | E3 | E4 | E5 | E6>;
+  fn6: (e: E) => Result<F, E6>,
+): (
+  errorHandler?: (
+    res: ResultFailure<any, E1 | E2 | E3 | E4 | E5 | E6>,
+  ) => Result<F, E1 | E2 | E3 | E4 | E5 | E6>,
+) => Result<F, E1 | E2 | E3 | E4 | E5 | E6>;
 
 // 8. 7つの関数のケース
 export function pipeline<A, B, C, D, E, F, G, E1, E2, E3, E4, E5, E6, E7>(
@@ -78,23 +98,32 @@ export function pipeline<A, B, C, D, E, F, G, E1, E2, E3, E4, E5, E6, E7>(
   fn4: (c: C) => Result<D, E4>,
   fn5: (d: D) => Result<E, E5>,
   fn6: (e: E) => Result<F, E6>,
-  fn7: (f: F) => Result<G, E7>
-): (errorHandler?: (res: ResultFailure<any, E1 | E2 | E3 | E4 | E5 | E6 | E7>) => Result<G, E1 | E2 | E3 | E4 | E5 | E6 | E7>) => Result<G, E1 | E2 | E3 | E4 | E5 | E6 | E7>;
+  fn7: (f: F) => Result<G, E7>,
+): (
+  errorHandler?: (
+    res: ResultFailure<any, E1 | E2 | E3 | E4 | E5 | E6 | E7>,
+  ) => Result<G, E1 | E2 | E3 | E4 | E5 | E6 | E7>,
+) => Result<G, E1 | E2 | E3 | E4 | E5 | E6 | E7>;
 
 // 9. 8つの関数のケース
-export function pipeline<A, B, C, D, E, F, G, H, E1, E2, E3, E4, E5, E6, E7, E8>(
-  fn1: () => Result<A, E1>,
-  fn2: (a: A) => Result<B, E2>,
-  fn3: (b: B) => Result<C, E3>,
-  fn4: (c: C) => Result<D, E4>,
-  fn5: (d: D) => Result<E, E5>,
-  fn6: (e: E) => Result<F, E6>,
-  fn7: (f: F) => Result<G, E7>,
-  fn8: (g: G) => Result<H, E8>
-): (errorHandler?: (res: ResultFailure<any, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8>) => Result<H, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8>) => Result<H, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8>;
-
-// 10. 9つの関数のケース
-export function pipeline<A, B, C, D, E, F, G, H, I, E1, E2, E3, E4, E5, E6, E7, E8, E9>(
+export function pipeline<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  E1,
+  E2,
+  E3,
+  E4,
+  E5,
+  E6,
+  E7,
+  E8,
+>(
   fn1: () => Result<A, E1>,
   fn2: (a: A) => Result<B, E2>,
   fn3: (b: B) => Result<C, E3>,
@@ -103,11 +132,33 @@ export function pipeline<A, B, C, D, E, F, G, H, I, E1, E2, E3, E4, E5, E6, E7, 
   fn6: (e: E) => Result<F, E6>,
   fn7: (f: F) => Result<G, E7>,
   fn8: (g: G) => Result<H, E8>,
-  fn9: (h: H) => Result<I, E9>
-): (errorHandler?: (res: ResultFailure<any, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9>) => Result<I, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9>) => Result<I, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9>;
+): (
+  errorHandler?: (
+    res: ResultFailure<any, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8>,
+  ) => Result<H, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8>,
+) => Result<H, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8>;
 
-// 11. 10つの関数のケース
-export function pipeline<A, B, C, D, E, F, G, H, I, J, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10>(
+// 10. 9つの関数のケース
+export function pipeline<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  E1,
+  E2,
+  E3,
+  E4,
+  E5,
+  E6,
+  E7,
+  E8,
+  E9,
+>(
   fn1: () => Result<A, E1>,
   fn2: (a: A) => Result<B, E2>,
   fn3: (b: B) => Result<C, E3>,
@@ -117,13 +168,57 @@ export function pipeline<A, B, C, D, E, F, G, H, I, J, E1, E2, E3, E4, E5, E6, E
   fn7: (f: F) => Result<G, E7>,
   fn8: (g: G) => Result<H, E8>,
   fn9: (h: H) => Result<I, E9>,
-  fn10: (i: I) => Result<J, E10>
-): (errorHandler?: (res: ResultFailure<any, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9 | E10>) => Result<J, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9 | E10>) => Result<J, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9 | E10>;
+): (
+  errorHandler?: (
+    res: ResultFailure<any, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9>,
+  ) => Result<I, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9>,
+) => Result<I, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9>;
+
+// 11. 10つの関数のケース
+export function pipeline<
+  A,
+  B,
+  C,
+  D,
+  E,
+  F,
+  G,
+  H,
+  I,
+  J,
+  E1,
+  E2,
+  E3,
+  E4,
+  E5,
+  E6,
+  E7,
+  E8,
+  E9,
+  E10,
+>(
+  fn1: () => Result<A, E1>,
+  fn2: (a: A) => Result<B, E2>,
+  fn3: (b: B) => Result<C, E3>,
+  fn4: (c: C) => Result<D, E4>,
+  fn5: (d: D) => Result<E, E5>,
+  fn6: (e: E) => Result<F, E6>,
+  fn7: (f: F) => Result<G, E7>,
+  fn8: (g: G) => Result<H, E8>,
+  fn9: (h: H) => Result<I, E9>,
+  fn10: (i: I) => Result<J, E10>,
+): (
+  errorHandler?: (
+    res: ResultFailure<any, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9 | E10>,
+  ) => Result<J, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9 | E10>,
+) => Result<J, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9 | E10>;
 
 // パイプライン関数の実装: 複数の関数を連結してデータを順次処理する
 export function pipeline(...fns: Array<(arg?: any) => Result<any, any>>): any {
   // 実際の実装
-  return (errorHandler?: (res: ResultFailure<any, any>) => Result<any, any>): Result<any, any> => {
+  return (
+    errorHandler?: (res: ResultFailure<any, any>) => Result<any, any>,
+  ): Result<any, any> => {
     if (fns.length === 0) {
       return success(undefined);
     }
@@ -131,7 +226,7 @@ export function pipeline(...fns: Array<(arg?: any) => Result<any, any>>): any {
     // 最初の関数を実行
     const first = fns[0];
     const currentResult = first();
-    
+
     // 非同期の場合
     if (currentResult instanceof Promise) {
       return handleAsyncPipeline(fns, errorHandler) as any;
@@ -141,29 +236,29 @@ export function pipeline(...fns: Array<(arg?: any) => Result<any, any>>): any {
     if (!currentResult.isSuccess) {
       return handleError(currentResult, errorHandler);
     }
-    
+
     // 残りの関数を順番に実行
     let currentValue = currentResult.value;
-    
+
     for (let i = 1; i < fns.length; i++) {
       const fn = fns[i];
       const result = fn(currentValue);
-      
+
       if (!result.isSuccess) {
         return handleError(result, errorHandler);
       }
-      
+
       currentValue = result.value;
     }
-    
+
     return success(currentValue);
   };
 }
 
 // エラー処理用ヘルパー関数
 function handleError<T, E>(
-  result: ResultFailure<T, E>, 
-  errorHandler?: (res: ResultFailure<any, E>) => Result<any, any>
+  result: ResultFailure<T, E>,
+  errorHandler?: (res: ResultFailure<any, E>) => Result<any, any>,
 ): Result<any, E> {
   if (errorHandler) {
     return errorHandler(result);
@@ -174,35 +269,37 @@ function handleError<T, E>(
 // 非同期パイプラインの処理
 async function handleAsyncPipeline(
   fns: Array<(arg?: any) => Result<any, any> | Promise<Result<any, any>>>,
-  errorHandler?: (res: ResultFailure<any, any>) => Result<any, any> | Promise<Result<any, any>>
+  errorHandler?: (
+    res: ResultFailure<any, any>,
+  ) => Result<any, any> | Promise<Result<any, any>>,
 ): Promise<Result<any, any>> {
   try {
     // 最初の関数を実行
     const first = fns[0];
     const currentResult = await first();
-    
+
     if (!currentResult.isSuccess) {
-      return errorHandler 
+      return errorHandler
         ? await Promise.resolve(errorHandler(currentResult))
         : failure(currentResult.value, currentResult.error);
     }
-    
+
     // 残りの関数を順番に実行
     let currentValue = currentResult.value;
-    
+
     for (let i = 1; i < fns.length; i++) {
       const fn = fns[i];
       const result = await fn(currentValue);
-      
+
       if (!result.isSuccess) {
-        return errorHandler 
+        return errorHandler
           ? await Promise.resolve(errorHandler(result))
           : failure(result.value, result.error);
       }
-      
+
       currentValue = result.value;
     }
-    
+
     return success(currentValue);
   } catch (error) {
     // 予期せぬエラーの処理

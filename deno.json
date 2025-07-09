@@ -1,6 +1,11 @@
 {
+  "name": "river",
+  "description": "A TypeScript pipeline library for functional programming",
+  "version": "0.1.0",
+  "exports": "./mod.ts",
+  "license": "MIT",
   "tasks": {
-    "dev": "deno run --watch main.ts"
+    "test": "deno test --watch"
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1"
