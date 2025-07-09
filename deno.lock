@@ -2,6 +2,7 @@
   "version": "5",
   "specifiers": {
     "jsr:@std/assert@1": "1.0.13",
+    "jsr:@std/async@^1.0.13": "1.0.13",
     "jsr:@std/internal@^1.0.6": "1.0.9"
   },
   "jsr": {
@@ -11,13 +12,20 @@
         "jsr:@std/internal"
       ]
     },
+    "@std/async@1.0.13": {
+      "integrity": "1d76ca5d324aef249908f7f7fe0d39aaf53198e5420604a59ab5c035adc97c96"
+    },
     "@std/internal@1.0.9": {
       "integrity": "bdfb97f83e4db7a13e8faab26fb1958d1b80cc64366501af78a0aee151696eb8"
     }
   },
+  "remote": {
+    "https://deno.land/std@0.203.0/async/delay.ts": "a6142eb44cdd856b645086af2b811b1fcce08ec06bb7d50969e6a872ee9b8659"
+  },
   "workspace": {
     "dependencies": [
-      "jsr:@std/assert@1"
+      "jsr:@std/assert@1",
+      "jsr:@std/async@^1.0.13"
     ]
   }
 }

@@ -1,22 +1,26 @@
-# パイプライン関数の設計
+# Pipeline Function Design
 
-- パイプライン関数は、複数の関数を連結して、データを順次処理するためのものです。
-- 各関数は、入力を受け取り、出力を返す形式で設計されます。
-- エラー処理を組み込むことで、途中でエラーが発生した場合でも、適切に処理を行うことができます。
-- **パイプライン関数は、n 個の引数を受け取る形で定義されます。**
-- 各関数は、入力の型と出力の型を明確に定義し、型安全性を確保します。
-- パイプライン関数は、各関数の出力を次の関数の入力として渡す形で動作します。
-- パイプライン関数は、複数の型に対応できる
-- パイプライン関数から出力された関数の返り値は、`Result<T, F>`
-  型である必要があります。
-- 関数は、非同期である場合も考慮し、Promiseを返すことができます。
-- 非同期用、同期用のパイプライン関数分けません。
-- パイプライン関数から出力された関数の返り値は、`Result<T, F>`
-  型である必要がありTはパイプラインとして渡された最後の関数の出力の型もしくは、渡した関数の返り値の型になる。
-- パイプライン関数から出力された関数の返り値は、`Result<T, F>`
-  型であり、Fはパイプラインとして渡された関数のエラー型のユニオンになります。
+- Pipeline functions are designed to connect multiple functions and process data
+  sequentially.
+- Each function receives an input and returns an output.
+- By incorporating error handling, proper processing can be performed even if an
+  error occurs midway.
+- **Pipeline functions are defined to accept n arguments.**
+- Each function clearly defines input and output types to ensure type safety.
+- Pipeline functions work by passing the output of each function as input to the
+  next function.
+- Pipeline functions can handle multiple types
+- The return value from a pipeline function must be of type `Result<T, F>`.
+- Functions can return Promises to handle asynchronous operations.
+- We don't separate pipeline functions for synchronous and asynchronous use.
+- The return value from a pipeline function must be of type `Result<T, F>`,
+  where T is the type of the output of the last function passed to the pipeline,
+  or the return type of the passed function.
+- The return value from a pipeline function is of type `Result<T, F>`, where F
+  is the union of error types from the functions passed to the pipeline.
 
-# rules
+# Rules
 
-- ジェネリクスを活用して型安全性を確保する
-- パイプライン関数内部はany型を使用してよいが外部からは型安全にアクセスできるようにする必要があります。
+- Utilize generics to ensure type safety
+- The pipeline function can use any type internally, but must provide type-safe
+  access externally.

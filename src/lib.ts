@@ -2,119 +2,200 @@ interface ResultSuccess<T> {
   isSuccess: true;
   value: T;
 }
-interface ResultFailure<T, F> {
+
+interface ResultFailure<T, E> {
   isSuccess: false;
   value: T;
-  error: F;
+  error: E;
 }
+
+export type Result<T, E> = ResultSuccess<T> | ResultFailure<T, E>;
+
+export type MaybePromise<T> = T | Promise<T>;
 
 export function success<T>(value: T): Result<T, never> {
   return { isSuccess: true, value };
 }
 
-export function failure<T, F>(value: T, error: F): Result<T, F> {
+export function failure<T, E>(value: T, error: E): Result<T, E> {
   return { isSuccess: false, value, error };
 }
 
-export type Result<T, F> = ResultSuccess<T> | ResultFailure<T, F>;
+export function isFailure<T, E>(
+  result: Result<T, E>,
+): result is ResultFailure<T, E> {
+  return !result.isSuccess;
+}
 
-// Type helpers for pipeline
-type UnwrapResult<T> = T extends Result<infer U, any> ? U : never;
-type UnwrapError<T> = T extends Result<any, infer E> ? E : never;
+type ArrayOfLength<T, N extends number> = T[] & { length: N };
 
-/**
- * Pipeline function overloads
- * 
- * These overloads provide type-safety for pipelines with different numbers of functions.
- * Each overload handles a specific number of functions (from 0 to 10) and properly
- * tracks the type transformations and error union types through the pipeline.
- */
+// 通常の配列のオーバーライド1
+export function pipeline<T, E>(
+  fns: ArrayOfLength<() => Result<T, E> | Promise<Result<T, E>>, 0>,
+): <T, E>(
+  recovery?: (error: ResultFailure<T, E>) => MaybePromise<Result<T, E>>,
+) => Promise<Result<null, null>>;
 
-// Case with 0 functions
-export function pipeline(): <T, E>() => Result<T, E>;
-
-export function pipeline<A, E1>(
-  fn1: () => Result<A, E1>,
+export function pipeline<T0, E0>(
+  fns: [() => Result<T0, E0> | Promise<Result<T0, E0>>],
 ): (
-  errorHandler?: (res: ResultFailure<any, E1>) => Result<A, E1>,
-) => Result<A, E1>;
+  recovery?: (error: ResultFailure<T0, E0>) => MaybePromise<Result<T0, E0>>,
+) => Promise<Result<T0, E0>>;
 
-export function pipeline<A, B, E1, E2>(
-  fn1: () => Result<A, E1>,
-  fn2: (a: A) => Result<B, E2>,
+export function pipeline<T0, T1, E0, E1>(
+  fns: [
+    () => MaybePromise<Result<T0, E0>>,
+    (input: T0) => MaybePromise<Result<T1, E1>>,
+  ],
 ): (
-  errorHandler?: (res: ResultFailure<any, E1 | E2>) => Result<B, E1 | E2>,
-) => Result<B, E1 | E2>;
+  recovery?: (
+    error: ResultFailure<T0, E0>|ResultFailure<T1, E1>,
+  ) => MaybePromise<Result<T0, E0>|Result<T1, E1>>,
+) => Promise<Result<T0, E0>|Result<T1, E1>>;
 
-export function pipeline<A, B, C, E1, E2, E3>(
-  fn1: () => Result<A, E1>,
-  fn2: (a: A) => Result<B, E2>,
-  fn3: (b: B) => Result<C, E3>,
+export function pipeline<T0, T1, T2, E0, E1, E2>(
+  fns: [
+    () => MaybePromise<Result<T0, E0>>,
+    (input: T0) => MaybePromise<Result<T1, E1>>,
+    (input: T1) => MaybePromise<Result<T2, E2>>,
+  ],
 ): (
-  errorHandler?: (
-    res: ResultFailure<any, E1 | E2 | E3>,
-  ) => Result<C, E1 | E2 | E3>,
-) => Result<C, E1 | E2 | E3>;
+  recovery?: (
+    error: ResultFailure<T0, E0>|ResultFailure<T1, E1>|ResultFailure<T2, E2>,
+  ) => MaybePromise<Result<T0, E0>|Result<T1, E1>|Result<T2, E2>>,
+) => Promise<Result<T0 | T1 | T2, E0 | E1 | E2>>;
 
-export function pipeline<A, B, C, D, E1, E2, E3, E4>(
-  fn1: () => Result<A, E1>,
-  fn2: (a: A) => Result<B, E2>,
-  fn3: (b: B) => Result<C, E3>,
-  fn4: (c: C) => Result<D, E4>,
+export function pipeline<T0, T1, T2, T3, E0, E1, E2, E3>(
+  fns: [
+    () => MaybePromise<Result<T0, E0>>,
+    (input: T0) => MaybePromise<Result<T1, E1>>,
+    (input: T1) => MaybePromise<Result<T2, E2>>,
+    (input: T2) => MaybePromise<Result<T3, E3>>,
+  ],
 ): (
-  errorHandler?: (
-    res: ResultFailure<any, E1 | E2 | E3 | E4>,
-  ) => Result<D, E1 | E2 | E3 | E4>,
-) => Result<D, E1 | E2 | E3 | E4>;
+  recovery?: (
+    error: ResultFailure<T0 | T1 | T2, E0 | E1 | E2>,
+  ) => MaybePromise<Result<T0 | T1 | T2, E0 | E1 | E2>>,
+) => Promise<Result<T0 | T1 | T2 | T3, E0 | E1 | E2 | E3>>;
 
-export function pipeline<A, B, C, D, E, E1, E2, E3, E4, E5>(
-  fn1: () => Result<A, E1>,
-  fn2: (a: A) => Result<B, E2>,
-  fn3: (b: B) => Result<C, E3>,
-  fn4: (c: C) => Result<D, E4>,
-  fn5: (d: D) => Result<E, E5>,
+export function pipeline<T0, T1, T2, T3, T4, E0, E1, E2, E3, E4>(
+  fns: [
+    () => MaybePromise<Result<T0, E0>>,
+    (input: T0) => MaybePromise<Result<T1, E1>>,
+    (input: T1) => MaybePromise<Result<T2, E2>>,
+    (input: T2) => MaybePromise<Result<T3, E3>>,
+    (input: T3) => MaybePromise<Result<T4, E4>>,
+  ],
 ): (
-  errorHandler?: (
-    res: ResultFailure<any, E1 | E2 | E3 | E4 | E5>,
-  ) => Result<E, E1 | E2 | E3 | E4 | E5>,
-) => Result<E, E1 | E2 | E3 | E4 | E5>;
+  recovery?: (
+    error: ResultFailure<T0 | T1 | T2 | T3, E0 | E1 | E2 | E3>,
+  ) => MaybePromise<Result<T0 | T1 | T2 | T3, E0 | E1 | E2 | E3>>,
+) => Promise<Result<T0 | T1 | T2 | T3 | T4, E0 | E1 | E2 | E3 | E4>>;
 
-export function pipeline<A, B, C, D, E, F, E1, E2, E3, E4, E5, E6>(
-  fn1: () => Result<A, E1>,
-  fn2: (a: A) => Result<B, E2>,
-  fn3: (b: B) => Result<C, E3>,
-  fn4: (c: C) => Result<D, E4>,
-  fn5: (d: D) => Result<E, E5>,
-  fn6: (e: E) => Result<F, E6>,
+export function pipeline<T0, T1, T2, T3, T4, T5, E0, E1, E2, E3, E4, E5>(
+  fns: [
+    () => MaybePromise<Result<T0, E0>>,
+    (input: T0) => MaybePromise<Result<T1, E1>>,
+    (input: T1) => MaybePromise<Result<T2, E2>>,
+    (input: T2) => MaybePromise<Result<T3, E3>>,
+    (input: T3) => MaybePromise<Result<T4, E4>>,
+    (input: T4) => MaybePromise<Result<T5, E5>>,
+  ],
 ): (
-  errorHandler?: (
-    res: ResultFailure<any, E1 | E2 | E3 | E4 | E5 | E6>,
-  ) => Result<F, E1 | E2 | E3 | E4 | E5 | E6>,
-) => Result<F, E1 | E2 | E3 | E4 | E5 | E6>;
-
-export function pipeline<A, B, C, D, E, F, G, E1, E2, E3, E4, E5, E6, E7>(
-  fn1: () => Result<A, E1>,
-  fn2: (a: A) => Result<B, E2>,
-  fn3: (b: B) => Result<C, E3>,
-  fn4: (c: C) => Result<D, E4>,
-  fn5: (d: D) => Result<E, E5>,
-  fn6: (e: E) => Result<F, E6>,
-  fn7: (f: F) => Result<G, E7>,
-): (
-  errorHandler?: (
-    res: ResultFailure<any, E1 | E2 | E3 | E4 | E5 | E6 | E7>,
-  ) => Result<G, E1 | E2 | E3 | E4 | E5 | E6 | E7>,
-) => Result<G, E1 | E2 | E3 | E4 | E5 | E6 | E7>;
+  recovery?: (
+    error: ResultFailure<T0 | T1 | T2 | T3, E0 | E1 | E2 | E3 | E4>,
+  ) => MaybePromise<Result<T0 | T1 | T2 | T3, E0 | E1 | E2 | E3 | E4>>,
+) => Promise<
+  Result<T0 | T1 | T2 | T3 | T4 | T5, E0 | E1 | E2 | E3 | E4 | E5>
+>;
 
 export function pipeline<
-  A,
-  B,
-  C,
-  D,
-  E,
-  F,
-  G,
-  H,
+  T0,
+  T1,
+  T2,
+  T3,
+  T4,
+  T5,
+  T6,
+  E0,
+  E1,
+  E2,
+  E3,
+  E4,
+  E5,
+  E6,
+>(
+  fns: [
+    () => MaybePromise<Result<T0, E0>>,
+    (input: T0) => MaybePromise<Result<T1, E1>>,
+    (input: T1) => MaybePromise<Result<T2, E2>>,
+    (input: T2) => MaybePromise<Result<T3, E3>>,
+    (input: T3) => MaybePromise<Result<T4, E4>>,
+    (input: T4) => MaybePromise<Result<T5, E5>>,
+    (input: T5) => MaybePromise<Result<T6, E6>>,
+  ],
+): (
+  recovery?: (
+    error: ResultFailure<T0 | T1 | T2 | T3, E0 | E1 | E2 | E3 | E4 | E5>,
+  ) => MaybePromise<Result<T0 | T1 | T2 | T3, E0 | E1 | E2 | E3 | E4 | E5>>,
+) => Promise<
+  Result<T0 | T1 | T2 | T3 | T4 | T5 | T6, E0 | E1 | E2 | E3 | E4 | E5 | E6>
+>;
+export function pipeline<
+  T0,
+  T1,
+  T2,
+  T3,
+  T4,
+  T5,
+  T6,
+  T7,
+  E0,
+  E1,
+  E2,
+  E3,
+  E4,
+  E5,
+  E6,
+  E7,
+>(
+  fns: [
+    () => MaybePromise<Result<T0, E0>>,
+    (input: T0) => MaybePromise<Result<T1, E1>>,
+    (input: T1) => MaybePromise<Result<T2, E2>>,
+    (input: T2) => MaybePromise<Result<T3, E3>>,
+    (input: T3) => MaybePromise<Result<T4, E4>>,
+    (input: T4) => MaybePromise<Result<T5, E5>>,
+    (input: T5) => MaybePromise<Result<T6, E6>>,
+    (input: T6) => MaybePromise<Result<T7, E7>>,
+  ],
+): (
+  recovery?: (
+    error: ResultFailure<
+      T0 | T1 | T2 | T3,
+      E0 | E1 | E2 | E3 | E4 | E5 | E6 | E7
+    >,
+  ) => MaybePromise<
+    Result<T0 | T1 | T2 | T3, E0 | E1 | E2 | E3 | E4 | E5 | E6 | E7>
+  >,
+) => Promise<
+  Result<
+    T0 | T1 | T2 | T3 | T4 | T5 | T6 | T7,
+    E0 | E1 | E2 | E3 | E4 | E5 | E6 | E7
+  >
+>;
+
+export function pipeline<
+  T0,
+  T1,
+  T2,
+  T3,
+  T4,
+  T5,
+  T6,
+  T7,
+  T8,
+  E0,
   E1,
   E2,
   E3,
@@ -124,30 +205,45 @@ export function pipeline<
   E7,
   E8,
 >(
-  fn1: () => Result<A, E1>,
-  fn2: (a: A) => Result<B, E2>,
-  fn3: (b: B) => Result<C, E3>,
-  fn4: (c: C) => Result<D, E4>,
-  fn5: (d: D) => Result<E, E5>,
-  fn6: (e: E) => Result<F, E6>,
-  fn7: (f: F) => Result<G, E7>,
-  fn8: (g: G) => Result<H, E8>,
+  fns: [
+    () => MaybePromise<Result<T0, E0>>,
+    (input: T0) => MaybePromise<Result<T1, E1>>,
+    (input: T1) => MaybePromise<Result<T2, E2>>,
+    (input: T2) => MaybePromise<Result<T3, E3>>,
+    (input: T3) => MaybePromise<Result<T4, E4>>,
+    (input: T4) => MaybePromise<Result<T5, E5>>,
+    (input: T5) => MaybePromise<Result<T6, E6>>,
+    (input: T6) => MaybePromise<Result<T7, E7>>,
+    (input: T7) => MaybePromise<Result<T8, E8>>,
+  ],
 ): (
-  errorHandler?: (
-    res: ResultFailure<any, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8>,
-  ) => Result<H, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8>,
-) => Result<H, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8>;
+  recovery?: (
+    error: ResultFailure<
+      T0 | T1 | T2 | T3,
+      E0 | E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8
+    >,
+  ) => MaybePromise<
+    Result<T0 | T1 | T2 | T3, E0 | E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8>
+  >,
+) => Promise<
+  Result<
+    T0 | T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8,
+    E0 | E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8
+  >
+>;
 
 export function pipeline<
-  A,
-  B,
-  C,
-  D,
-  E,
-  F,
-  G,
-  H,
-  I,
+  T0,
+  T1,
+  T2,
+  T3,
+  T4,
+  T5,
+  T6,
+  T7,
+  T8,
+  T9,
+  E0,
   E1,
   E2,
   E3,
@@ -158,32 +254,47 @@ export function pipeline<
   E8,
   E9,
 >(
-  fn1: () => Result<A, E1>,
-  fn2: (a: A) => Result<B, E2>,
-  fn3: (b: B) => Result<C, E3>,
-  fn4: (c: C) => Result<D, E4>,
-  fn5: (d: D) => Result<E, E5>,
-  fn6: (e: E) => Result<F, E6>,
-  fn7: (f: F) => Result<G, E7>,
-  fn8: (g: G) => Result<H, E8>,
-  fn9: (h: H) => Result<I, E9>,
+  fns: [
+    () => MaybePromise<Result<T0, E0>>,
+    (input: T0) => MaybePromise<Result<T1, E1>>,
+    (input: T1) => MaybePromise<Result<T2, E2>>,
+    (input: T2) => MaybePromise<Result<T3, E3>>,
+    (input: T3) => MaybePromise<Result<T4, E4>>,
+    (input: T4) => MaybePromise<Result<T5, E5>>,
+    (input: T5) => MaybePromise<Result<T6, E6>>,
+    (input: T6) => MaybePromise<Result<T7, E7>>,
+    (input: T7) => MaybePromise<Result<T8, E8>>,
+    (input: T8) => MaybePromise<Result<T9, E9>>,
+  ],
 ): (
-  errorHandler?: (
-    res: ResultFailure<any, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9>,
-  ) => Result<I, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9>,
-) => Result<I, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9>;
+  recovery?: (
+    error: ResultFailure<
+      T0 | T1 | T2 | T3,
+      E0 | E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9
+    >,
+  ) => MaybePromise<
+    Result<T0 | T1 | T2 | T3, E0 | E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9>
+  >,
+) => Promise<
+  Result<
+    T0 | T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9,
+    E0 | E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9
+  >
+>;
 
 export function pipeline<
-  A,
-  B,
-  C,
-  D,
-  E,
-  F,
-  G,
-  H,
-  I,
-  J,
+  T0,
+  T1,
+  T2,
+  T3,
+  T4,
+  T5,
+  T6,
+  T7,
+  T8,
+  T9,
+  T10,
+  E0,
   E1,
   E2,
   E3,
@@ -195,112 +306,64 @@ export function pipeline<
   E9,
   E10,
 >(
-  fn1: () => Result<A, E1>,
-  fn2: (a: A) => Result<B, E2>,
-  fn3: (b: B) => Result<C, E3>,
-  fn4: (c: C) => Result<D, E4>,
-  fn5: (d: D) => Result<E, E5>,
-  fn6: (e: E) => Result<F, E6>,
-  fn7: (f: F) => Result<G, E7>,
-  fn8: (g: G) => Result<H, E8>,
-  fn9: (h: H) => Result<I, E9>,
-  fn10: (i: I) => Result<J, E10>,
+  fns: [
+    () => MaybePromise<Result<T0, E0>>,
+    (input: T0) => MaybePromise<Result<T1, E1>>,
+    (input: T1) => MaybePromise<Result<T2, E2>>,
+    (input: T2) => MaybePromise<Result<T3, E3>>,
+    (input: T3) => MaybePromise<Result<T4, E4>>,
+    (input: T4) => MaybePromise<Result<T5, E5>>,
+    (input: T5) => MaybePromise<Result<T6, E6>>,
+    (input: T6) => MaybePromise<Result<T7, E7>>,
+    (input: T7) => MaybePromise<Result<T8, E8>>,
+    (input: T8) => MaybePromise<Result<T9, E9>>,
+    (input: T9) => MaybePromise<Result<T10, E10>>,
+  ],
 ): (
-  errorHandler?: (
-    res: ResultFailure<any, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9 | E10>,
-  ) => Result<J, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9 | E10>,
-) => Result<J, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9 | E10>;
+  recovery?: (
+    error: ResultFailure<
+      T0 | T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10,
+      E0 | E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9 | E10
+    >,
+  ) => MaybePromise<
+    Result<
+      T0 | T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10,
+      E0 | E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9 | E10
+    >
+  >,
+) => Promise<
+  Result<
+    T0 | T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10,
+    E0 | E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9 | E10
+  >
+>;
 
-// Pipeline function implementation: Connects multiple functions to process data sequentially
-export function pipeline(...fns: Array<(arg?: any) => Result<any, any>>): any {
-  // Actual implementation
-  return (
-    errorHandler?: (res: ResultFailure<any, any>) => Result<any, any>,
-  ): Result<any, any> => {
+export function pipeline<T, E>(
+  fns: Array<(input?: any) => Result<T, E> | Promise<Result<T, E>>>,
+): (
+  recovery?: (error: ResultFailure<T, E>) => MaybePromise<Result<T, E>>,
+) => Promise<Result<T, E>> {
+  return async (
+    recovery?: (error: ResultFailure<T, E>) => MaybePromise<Result<T, E>>,
+  ) => {
+    let result: Result<T, E> | undefined;
+
     if (fns.length === 0) {
-      return success(undefined);
+      return success(null as any); // Return a success with null value for empty pipeline
     }
 
-    // Execute the first function
-    const first = fns[0];
-    const currentResult = first();
-
-    // Handle asynchronous case
-    if (currentResult instanceof Promise) {
-      return handleAsyncPipeline(fns, errorHandler) as any;
-    }
-
-    // Synchronous processing
-    if (!currentResult.isSuccess) {
-      return handleError(currentResult, errorHandler);
-    }
-
-    // Execute the remaining functions in sequence
-    let currentValue = currentResult.value;
-
-    for (let i = 1; i < fns.length; i++) {
-      const fn = fns[i];
-      const result = fn(currentValue);
-
-      if (!result.isSuccess) {
-        return handleError(result, errorHandler);
+    for (const fn of fns) {
+      const res = await fn(result?.value);
+      if (res.isSuccess) {
+        result = res;
+      } else {
+        if (recovery) {
+          return recovery(res);
+        }
+        return res; // Return the first failure
       }
-
-      currentValue = result.value;
     }
 
-    return success(currentValue);
+    return result as Result<T, E>;
   };
-}
-
-// Helper function for error handling
-function handleError<T, E>(
-  result: ResultFailure<T, E>,
-  errorHandler?: (res: ResultFailure<any, E>) => Result<any, any>,
-): Result<any, E> {
-  if (errorHandler) {
-    return errorHandler(result);
-  }
-  return failure(result.value, result.error);
-}
-
-// Handling asynchronous pipeline
-async function handleAsyncPipeline(
-  fns: Array<(arg?: any) => Result<any, any> | Promise<Result<any, any>>>,
-  errorHandler?: (
-    res: ResultFailure<any, any>,
-  ) => Result<any, any> | Promise<Result<any, any>>,
-): Promise<Result<any, any>> {
-  try {
-    // Execute the first function
-    const first = fns[0];
-    const currentResult = await first();
-
-    if (!currentResult.isSuccess) {
-      return errorHandler
-        ? await Promise.resolve(errorHandler(currentResult))
-        : failure(currentResult.value, currentResult.error);
-    }
-
-    // Execute the remaining functions in sequence
-    let currentValue = currentResult.value;
-
-    for (let i = 1; i < fns.length; i++) {
-      const fn = fns[i];
-      const result = await fn(currentValue);
-
-      if (!result.isSuccess) {
-        return errorHandler
-          ? await Promise.resolve(errorHandler(result))
-          : failure(result.value, result.error);
-      }
-
-      currentValue = result.value;
-    }
-
-    return success(currentValue);
-  } catch (error) {
-    // Handle unexpected errors
-    return failure(null, error as any);
-  }
 }

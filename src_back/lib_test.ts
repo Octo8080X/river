@@ -1,29 +1,42 @@
 import { assertEquals } from "@std/assert";
-import { failure, pipeline, Result, success } from "./lib.ts";
+import { asyncResult, failure, pipeline, type Result, success } from "./lib.ts";
 
 /**
- * TypeScript パイプライン関数のテスト
+ * TypeScript Pipeline Function Tests
  *
- * このテストファイルは、パイプライン関数の機能を網羅的にテストします。
- * テストは以下のカテゴリに分類されています：
+ * This test file comprehensively tests the pipeline function's features.
+ * Tests are categorized as follows:
  *
- * 1. 基本的な成功パターンのテスト - 単純な成功ケースからさまざまな長さのチェーンまで
- * 2. 型変換のテスト - 異なる型の間の変換をテスト
- * 3. エラーハンドリングのテスト - 異なる場所でのエラー発生とハンドリング
- * 4. エッジケースのテスト - 空のパイプラインなど特殊なケース
- * 5. 非同期パイプラインのテスト - Promiseを返す関数の処理
- * 6. 型推論のテスト - 型が正しく推論されることを確認
+ * 1. Basic Success Pattern Tests - From simple success cases to various chain lengths
+ * 2. Type Conversion Tests - Testing conversions between different types
+ * 3. Error Handling Tests - Error occurrence and handling at different stages
+ * 4. Edge Case Tests - Special   co        const p = pipeline(asyncR1, asyncE2);
+    const result = await p((_res) => {
+      // Asynchronous error handler that directly returns Result instead of Promise<Result>
+      // Due to TypeScript limitations, error handlers need to return Result synchronously
+      return success(100);
+    });p = pipeline(asyncR1, asyncE2);
+    const result = await p((_res) => {
+      // Asynchronous error handler that directly returns Result instead of Promise<Result>
+      // Due to TypeScript limitations, error handlers need to return Result synchronously
+      return success(100); = pipeline(asyncR1, asyncE2);
+    const result = await p((_res) => {
+      // Asynchronous error handler that directly returns Result instead of Promise<Result>
+      // Due to TypeScript limitations, error handlers need to return Result synchronously
+      return success(100); like empty pipelines
+ * 5. Asynchronous Pipeline Tests - Processing functions that return Promises
+ * 6. Type Inference Tests - Verifying that types are correctly inferred
  */
 
-// ================ 1. 基本的な成功パターンのテスト ================
+// ================ 1. Basic Success Pattern Tests ================
 
-// 最もシンプルな成功ケース（number型のみ、3つの関数）
+// Most simple success case (number type only, 3 functions)
 Deno.test("pipeline handles successful execution", () => {
   const r1 = (): Result<number, "EEE1"> => (success(1));
   const r2 = (s: number): Result<number, "EEE2"> => (success(s + 1));
   const r3 = (s: number): Result<number, "EEE3"> => (success(s + 2));
 
-  // 型推論によってエラー型は "EEE1" | "EEE2" | "EEE3" になる
+  // Error types are inferred as "EEE1" | "EEE2" | "EEE3" through type inference
   const a = pipeline(r1, r2, r3);
   const result = a();
 
@@ -33,7 +46,7 @@ Deno.test("pipeline handles successful execution", () => {
   }
 });
 
-// 文字列型を使ったテスト（単一型、3つの関数）
+// String type test (single type, 3 functions)
 Deno.test("pipeline works with string type", () => {
   const r1 = (): Result<string, "STR1"> => (success("hello"));
   const r2 = (s: string): Result<string, "STR2"> => (success(s + " world"));
@@ -48,7 +61,7 @@ Deno.test("pipeline works with string type", () => {
   }
 });
 
-// 中程度のチェーンの成功ケース（5つの関数）
+// Medium-length chain success case (5 functions)
 Deno.test("pipeline handles medium-length successful chain", () => {
   const r1 = (): Result<number, "EEE1"> => success(1);
   const r2 = (s: number): Result<number, "EEE2"> => success(s + 1);
@@ -65,7 +78,7 @@ Deno.test("pipeline handles medium-length successful chain", () => {
   }
 });
 
-// 長いチェーン（6つの関数）のテスト
+// Test with a long chain (6 functions)
 Deno.test("pipeline handles 6 functions", () => {
   const r1 = (): Result<number, "LONG1"> => success(1);
   const r2 = (n: number): Result<number, "LONG2"> => success(n + 2);
@@ -79,12 +92,12 @@ Deno.test("pipeline handles 6 functions", () => {
 
   assertEquals(result.isSuccess, true);
   if (result.isSuccess) {
-    // 計算過程: 1 + 2 = 3, 3 * 3 = 9, 9 - 4 = 5, 5 / 5 = 1, 1 + 6 = 7
+    // Calculation process: 1 + 2 = 3, 3 * 3 = 9, 9 - 4 = 5, 5 / 5 = 1, 1 + 6 = 7
     assertEquals(result.value, 7);
   }
 });
 
-// 最大長のチェーン（10個の関数）のテスト
+// Test with maximum chain length (10 functions)
 Deno.test("pipeline handles maximum chain of 10 functions", () => {
   const r1 = (): Result<number, "L1"> => success(0);
   const r2 = (n: number): Result<number, "L2"> => success(n + 1);
@@ -106,15 +119,15 @@ Deno.test("pipeline handles maximum chain of 10 functions", () => {
   }
 });
 
-// ================ 2. 型変換のテスト ================
+// ================ 2. Type Conversion Tests ================
 
-// 複数の型が混ざるケース（number -> string -> boolean）
+// Case with multiple mixed types (number -> string -> boolean)
 Deno.test("pipeline handles type conversion (number -> string -> boolean)", () => {
   const r1 = (): Result<number, "EEE1"> => success(1);
   const r2 = (s: number): Result<string, "EEE2"> => success(`Value: ${s + 1}`);
   const r3 = (s: string): Result<boolean, "EEE3"> => success(s.length > 10);
 
-  // 型推論によってエラー型は "EEE1" | "EEE2" | "EEE3" になる
+  // Error types are inferred as "EEE1" | "EEE2" | "EEE3" through type inference
   const a = pipeline(r1, r2, r3);
   const result = a();
 
@@ -124,7 +137,7 @@ Deno.test("pipeline handles type conversion (number -> string -> boolean)", () =
   }
 });
 
-// 複雑な型変換（number -> string -> number -> boolean）
+// Complex type conversion (number -> string -> number -> boolean)
 Deno.test("pipeline handles complex type conversion (number -> string -> number -> boolean)", () => {
   const r1 = (): Result<number, "E1"> => success(10);
   const r2 = (n: number): Result<string, "E2"> =>
@@ -137,11 +150,11 @@ Deno.test("pipeline handles complex type conversion (number -> string -> number 
 
   assertEquals(result.isSuccess, true);
   if (result.isSuccess) {
-    assertEquals(result.value, false); // "10 converted" の文字列長は11なので、11 > 15 は false
+    assertEquals(result.value, false); // The length of "10 converted" is 11, so 11 > 15 is false
   }
 });
 
-// シンプルなオブジェクト型を使ったテスト
+// Test using a simple object type
 Deno.test("pipeline works with simple object type", () => {
   type User = { name: string; age: number };
 
@@ -160,7 +173,7 @@ Deno.test("pipeline works with simple object type", () => {
   }
 });
 
-// 複雑なオブジェクト型の変換テスト
+// Test for complex object type transformation
 Deno.test("pipeline transforms complex object types", () => {
   interface User {
     id: number;
@@ -199,25 +212,25 @@ Deno.test("pipeline transforms complex object types", () => {
   }
 });
 
-// ================ 3. エラーハンドリングのテスト ================
+// ================ 3. Error Handling Tests ================
 
-// エラーハンドラなしの場合のテスト（最もシンプルなエラーケース）
+// Test without error handler (simplest error case)
 Deno.test("pipeline returns failure when error occurs without handler", () => {
   const e1 = (): Result<number, "EEE1"> => failure(999, "EEE1");
   const r2 = (s: number): Result<number, "EEE2"> => success(s + 1);
   const r3 = (s: number): Result<number, "EEE3"> => success(s + 2);
 
   const p = pipeline(e1, r2, r3);
-  const result = p(); // エラーハンドラなし
+  const result = p(); // No error handler
 
   assertEquals(result.isSuccess, false);
   if (!result.isSuccess) {
-    assertEquals(result.value, 999); // エラー発生時に元の値が返る
+    assertEquals(result.value, 999); // Original value is returned when an error occurs
     assertEquals(result.error, "EEE1");
   }
 });
 
-// 最初の関数でエラーが発生した場合のテスト（エラーハンドラあり）
+// Test for error occurring in the first function (with error handler)
 Deno.test("pipeline handles error in first function with error handler", () => {
   const e1 = (): Result<number, "EEE1"> => failure(1, "EEE1");
   const r2 = (s: number): Result<number, "EEE2"> => success(s + 1);
@@ -228,7 +241,7 @@ Deno.test("pipeline handles error in first function with error handler", () => {
   const result = b((res) => {
     caughtError = res.error;
 
-    // エラーハンドラのテスト - Result型を返す
+    // Error handler test - returns Result type
     switch (res.error) {
       case "EEE1":
         return success(-1);
@@ -248,7 +261,7 @@ Deno.test("pipeline handles error in first function with error handler", () => {
   }
 });
 
-// 真ん中の関数でエラーが発生した場合のテスト
+// Test for error occurring in a middle function
 Deno.test("pipeline handles error in middle function", () => {
   const r1 = (): Result<number, "EEE1"> => success(1);
   const e2 = (s: number): Result<number, "EEE2"> => failure(s + 1, "EEE2");
@@ -268,7 +281,7 @@ Deno.test("pipeline handles error in middle function", () => {
   }
 });
 
-// 長いチェーンの末尾でエラーが発生した場合のテスト
+// Test for error occurring at the end of a long chain
 Deno.test("pipeline handles error in last function of a chain", () => {
   const r1 = (): Result<number, "EEE1"> => success(1);
   const r2 = (s: number): Result<number, "EEE2"> => success(s + 1);
@@ -281,7 +294,7 @@ Deno.test("pipeline handles error in last function of a chain", () => {
   const result = d((res) => {
     caughtError = res.error;
 
-    // エラーハンドラのテスト - Result型を返す
+    // Error handler test - returns Result type
     switch (res.error) {
       case "EEE1":
         return success(-1);
@@ -305,7 +318,7 @@ Deno.test("pipeline handles error in last function of a chain", () => {
   }
 });
 
-// 長いチェーンの中間でエラーが発生するテスト
+// Test for error occurring in the middle of a long chain
 Deno.test("pipeline handles error in middle of a long chain", () => {
   const r1 = (): Result<number, "LONG1"> => success(1);
   const r2 = (n: number): Result<number, "LONG2"> => success(n + 2);
@@ -329,7 +342,7 @@ Deno.test("pipeline handles error in middle of a long chain", () => {
   }
 });
 
-// 異なる型でエラーが発生した場合のテスト
+// Test for errors occurring with different types
 Deno.test("pipeline handles errors with different types", () => {
   const r1 = (): Result<number, "E1"> => success(5);
   const r2 = (n: number): Result<string, "E2"> => failure(n.toString(), "E2");
@@ -349,14 +362,14 @@ Deno.test("pipeline handles errors with different types", () => {
   }
 });
 
-// エラーハンドラがエラーを返す場合のテスト
+// Test for error handler returning an error
 Deno.test("pipeline handles error handler returning failure", () => {
   const r1 = (): Result<number, "E1"> => success(5);
   const e2 = (n: number): Result<string, "E2"> => failure(n.toString(), "E2");
 
   const p = pipeline(r1, e2);
   const result = p((_res) => {
-    // エラーハンドラがエラーを返す
+    // Error handler returns an error
     return failure("error handler failure", "E2");
   });
 
@@ -367,9 +380,9 @@ Deno.test("pipeline handles error handler returning failure", () => {
   }
 });
 
-// ================ 4. エッジケースのテスト ================
+// ================ 4. Edge Case Tests ================
 
-// 空のパイプラインのテスト
+// Test for empty pipeline
 Deno.test("pipeline handles empty function chain", () => {
   const p = pipeline();
   const result = p();
@@ -380,7 +393,7 @@ Deno.test("pipeline handles empty function chain", () => {
   }
 });
 
-// 単一関数のパイプラインテスト
+// Test for pipeline with a single function
 Deno.test("pipeline works with a single function", () => {
   const r1 = (): Result<string, "SINGLE"> => success("single function");
 
@@ -393,7 +406,7 @@ Deno.test("pipeline works with a single function", () => {
   }
 });
 
-// undefined/nullの扱いテスト
+// Test for handling undefined/null values
 Deno.test("pipeline handles undefined and null values", () => {
   const r1 = (): Result<number | undefined, "U1"> => success(undefined);
   const r2 = (n: number | undefined): Result<string | null, "U2"> =>
@@ -409,21 +422,21 @@ Deno.test("pipeline handles undefined and null values", () => {
   }
 });
 
-// ================ 5. 非同期パイプラインのテスト ================
+// ================ 5. Asynchronous Pipeline Tests ================
 
-// 単純な非同期パイプラインのテスト
+// Test for a simple asynchronous pipeline
 Deno.test({
   name: "pipeline handles async functions",
   async fn() {
-    // 単純なPromiseをラップしたテスト関数
+    // Simple test function wrapped in Promise
     const asyncR1 = (): Result<number, "ASYNC1"> =>
-      Promise.resolve(success(1)) as unknown as Result<number, "ASYNC1">;
+      asyncResult(Promise.resolve(success(1)));
 
     const asyncR2 = (n: number): Result<number, "ASYNC2"> =>
-      Promise.resolve(success(n * 2)) as unknown as Result<number, "ASYNC2">;
+      asyncResult(Promise.resolve(success(n * 2)));
 
     const asyncR3 = (n: number): Result<number, "ASYNC3"> =>
-      Promise.resolve(success(n + 3)) as unknown as Result<number, "ASYNC3">;
+      asyncResult(Promise.resolve(success(n + 3)));
 
     const p = pipeline(asyncR1, asyncR2, asyncR3);
     const result = await p();
@@ -437,21 +450,18 @@ Deno.test({
   sanitizeOps: false,
 });
 
-// 非同期パイプラインでエラーが発生するテスト
+// Test for error occurring in an asynchronous pipeline
 Deno.test({
   name: "pipeline handles error in async function",
   async fn() {
     const asyncR1 = (): Result<number, "ASYNC1"> =>
-      Promise.resolve(success(1)) as unknown as Result<number, "ASYNC1">;
+      asyncResult(Promise.resolve(success(1)));
 
     const asyncE2 = (n: number): Result<number, "ASYNC2"> =>
-      Promise.resolve(failure(n, "ASYNC2")) as unknown as Result<
-        number,
-        "ASYNC2"
-      >;
+      asyncResult(Promise.resolve(failure(n, "ASYNC2")));
 
     const asyncR3 = (n: number): Result<number, "ASYNC3"> =>
-      Promise.resolve(success(n + 3)) as unknown as Result<number, "ASYNC3">;
+      asyncResult(Promise.resolve(success(n + 3)));
 
     let caughtError: string | undefined;
     const p = pipeline(asyncR1, asyncE2, asyncR3);
@@ -470,22 +480,19 @@ Deno.test({
   sanitizeOps: false,
 });
 
-// 非同期エラーハンドラがエラーを返すテスト
+// Test for asynchronous error handler returning an error
 Deno.test({
   name: "pipeline handles async error handler returning error",
   async fn() {
     const asyncR1 = (): Result<number, "ASYNC1"> =>
-      Promise.resolve(success(1)) as unknown as Result<number, "ASYNC1">;
+      asyncResult(Promise.resolve(success(1)));
 
     const asyncE2 = (n: number): Result<number, "ASYNC2"> =>
-      Promise.resolve(failure(n, "ASYNC2")) as unknown as Result<
-        number,
-        "ASYNC2"
-      >;
+      asyncResult(Promise.resolve(failure(n, "ASYNC2")));
 
     const p = pipeline(asyncR1, asyncE2);
     const result = await p((_res) => {
-      // エラーハンドラはResultの型と一致する必要がある
+      // The error handler must match the Result type
       return failure(42, "ASYNC2");
     });
 
@@ -499,20 +506,20 @@ Deno.test({
   sanitizeOps: false,
 });
 
-// 長い非同期チェーンのテスト
+// Test for a long asynchronous chain
 Deno.test({
   name: "pipeline handles long async function chain",
   async fn() {
     const asyncR1 = (): Result<number, "AL1"> =>
-      Promise.resolve(success(1)) as unknown as Result<number, "AL1">;
+      asyncResult(Promise.resolve(success(1)));
     const asyncR2 = (n: number): Result<number, "AL2"> =>
-      Promise.resolve(success(n + 1)) as unknown as Result<number, "AL2">;
+      asyncResult(Promise.resolve(success(n + 1)));
     const asyncR3 = (n: number): Result<number, "AL3"> =>
-      Promise.resolve(success(n * 2)) as unknown as Result<number, "AL3">;
+      asyncResult(Promise.resolve(success(n * 2)));
     const asyncR4 = (n: number): Result<number, "AL4"> =>
-      Promise.resolve(success(n - 1)) as unknown as Result<number, "AL4">;
+      asyncResult(Promise.resolve(success(n - 1)));
     const asyncR5 = (n: number): Result<number, "AL5"> =>
-      Promise.resolve(success(n * 3)) as unknown as Result<number, "AL5">;
+      asyncResult(Promise.resolve(success(n * 3)));
 
     const p = pipeline(asyncR1, asyncR2, asyncR3, asyncR4, asyncR5);
     const result = await p();
@@ -527,20 +534,20 @@ Deno.test({
   sanitizeOps: false,
 });
 
-// 非同期エラーハンドラが非同期の結果を返すテスト
+// Test for asynchronous error handler returning asynchronous result
 Deno.test({
   name: "pipeline handles async error handler returning async result",
   async fn() {
     const asyncR1 = (): Result<number, "AEH1"> =>
-      Promise.resolve(success(1)) as unknown as Result<number, "AEH1">;
+      asyncResult(Promise.resolve(success(1)));
 
     const asyncE2 = (n: number): Result<number, "AEH2"> =>
-      Promise.resolve(failure(n, "AEH2")) as unknown as Result<number, "AEH2">;
+      asyncResult(Promise.resolve(failure(n, "AEH2")));
 
     const p = pipeline(asyncR1, asyncE2);
     const result = await p((_res) => {
-      // 非同期処理を行うエラーハンドラだが、Promise<Result>ではなくResultを直接返す
-      // TypeScriptの制限により、エラーハンドラは同期的にResultを返す必要がある
+      // Asynchronous error handler that directly returns Result instead of Promise<Result>
+      // Due to TypeScript limitations, error handlers need to return Result synchronously
       return success(100);
     });
 
@@ -553,26 +560,23 @@ Deno.test({
   sanitizeOps: false,
 });
 
-// ================ 6. 型推論のテスト ================
+// ================ 6. Type Inference Tests ================
 
-// 複雑なエラー型の型推論テスト
+// Test for complex error type inference
 Deno.test({
   name: "pipeline correctly infers complex error types",
   async fn() {
-    // 複雑な型エイリアスの定義
+    // Complex type alias definitions
     type ErrorA = { code: number; message: string };
     type ErrorB = { status: number; detail: string };
 
     const asyncR1 = (): Result<number, ErrorA> =>
-      Promise.resolve(success(42)) as unknown as Result<number, ErrorA>;
+      asyncResult(Promise.resolve(success(42)));
 
     const asyncR2 = (n: number): Result<string, ErrorB> =>
-      Promise.resolve(success(`Value: ${n}`)) as unknown as Result<
-        string,
-        ErrorB
-      >;
+      asyncResult(Promise.resolve(success(`Value: ${n}`)));
 
-    // エラー型がErrorA | ErrorBに推論されるはず
+    // Error type should be inferred as ErrorA | ErrorB
     const p = pipeline(asyncR1, asyncR2);
     const result = await p();
 
@@ -581,15 +585,15 @@ Deno.test({
       assertEquals(result.value, "Value: 42");
     }
 
-    // エラーケースをテスト
+    // Test error case
     const asyncE1 = (): Result<number, ErrorA> =>
-      Promise.resolve(
-        failure(0, { code: 500, message: "Server Error" }),
-      ) as unknown as Result<number, ErrorA>;
+      asyncResult(
+        Promise.resolve(failure(0, { code: 500, message: "Server Error" })),
+      );
 
     const pWithError = pipeline(asyncE1, asyncR2);
     const errorResult = await pWithError((res) => {
-      // エラー型がErrorA | ErrorBになっていることを確認
+      // Verify that the error type is ErrorA | ErrorB
       if ("code" in res.error) {
         assertEquals(res.error.code, 500);
         assertEquals(res.error.message, "Server Error");
@@ -606,7 +610,7 @@ Deno.test({
   sanitizeOps: false,
 });
 
-// 複雑なオブジェクト構造での型推論テスト
+// Test for type inference with complex object structure
 Deno.test("pipeline infers types correctly with complex object structure", () => {
   interface ComplexObject {
     id: number;
