@@ -7,13 +7,41 @@ interface ResultFailure<T, F>{
 }
 export type Result<T,F> = ResultSuccess<T>| ResultFailure<T,F>;
 
-// 複数のエラー型を処理できるpipeline関数（n個対応）
+// パイプライン関数: 複数の関数を連結してデータを順次処理する
+// 複数の型に対応できるようにジェネリクスを拡張
+export function pipeline<A, B, E extends string>(
+  first: () => Result<A, E>,
+  second: (v: A) => Result<B, E>
+): ((s?: ((res: ResultFailure<never, E>) => B)) => B);
+
+export function pipeline<A, B, C, E extends string>(
+  first: () => Result<A, E>,
+  second: (v: A) => Result<B, E>,
+  third: (v: B) => Result<C, E>
+): ((s?: ((res: ResultFailure<never, E>) => C)) => C);
+
+export function pipeline<A, B, C, D, E extends string>(
+  first: () => Result<A, E>,
+  second: (v: A) => Result<B, E>,
+  third: (v: B) => Result<C, E>,
+  fourth: (v: C) => Result<D, E>
+): ((s?: ((res: ResultFailure<never, E>) => D)) => D);
+
+export function pipeline<A, B, C, D, F, E extends string>(
+  first: () => Result<A, E>,
+  second: (v: A) => Result<B, E>,
+  third: (v: B) => Result<C, E>,
+  fourth: (v: C) => Result<D, E>,
+  fifth: (v: D) => Result<F, E>
+): ((s?: ((res: ResultFailure<never, E>) => F)) => F);
+
+// 実装
 export function pipeline<T, E extends string>(
-  first: () => Result<T, E>,
-  ...rest: Array<(v: T) => Result<T, E>>
-): ((s?: ((res: ResultFailure<never, E>) => T)) => T) {
+  first: () => Result<unknown, E>,
+  ...rest: Array<(v: unknown) => Result<unknown, E>>
+): ((s?: ((res: ResultFailure<never, E>) => unknown)) => unknown) {
   // エラーハンドラの型
-  return (s?: ((res: ResultFailure<never, E>) => T)): T => {
+  return (s?: ((res: ResultFailure<never, E>) => unknown)): unknown => {
     // 最初の関数を実行
     const initialResult = first();
     

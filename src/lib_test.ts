@@ -14,6 +14,19 @@ Deno.test("pipeline handles successful execution", () => {
   assertEquals(result, 4); // 1 + 1 + 2 = 4
 });
 
+// 複数の型が混ざるケースのテスト
+Deno.test("pipeline handles mixed types", () => {
+  const r1 = (): Result<number, "EEE1"> => ({v: 1});
+  const r2 = (s:number): Result<string, "EEE2"> => ({v: `Value: ${s + 1}`});
+  const r3 = (s:string): Result<boolean, "EEE3"> => ({v: s.length > 10});
+
+  // 型推論によってエラー型は "EEE1" | "EEE2" | "EEE3" になる
+  const a = pipeline(r1, r2, r3);
+  const result = a();
+
+  assertEquals(result, false); // "Value: 2".length > 10 = false
+});
+
 // 最初の関数でエラーが発生した場合のテスト
 Deno.test("pipeline handles error in first function", () => {
   const e1 = (): Result<number, "EEE1"> => ({v: 1, e: "EEE1"});
