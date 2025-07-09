@@ -51,14 +51,74 @@ export function pipeline<A, B, C, D, E1, E2, E3, E4>(
   fn4: (c: C) => Result<D, E4>
 ): (errorHandler?: (res: ResultFailure<any, E1 | E2 | E3 | E4>) => Result<D, E1 | E2 | E3 | E4>) => Result<D, E1 | E2 | E3 | E4>;
 
-// 5. 5つの関数のケース
-export function pipeline<A, B, C, D, F, E1, E2, E3, E4, E5>(
+// 6. 5つの関数のケース
+export function pipeline<A, B, C, D, E, E1, E2, E3, E4, E5>(
   fn1: () => Result<A, E1>,
   fn2: (a: A) => Result<B, E2>,
   fn3: (b: B) => Result<C, E3>,
   fn4: (c: C) => Result<D, E4>,
-  fn5: (d: D) => Result<F, E5>
-): (errorHandler?: (res: ResultFailure<any, E1 | E2 | E3 | E4 | E5>) => Result<F, E1 | E2 | E3 | E4 | E5>) => Result<F, E1 | E2 | E3 | E4 | E5>;
+  fn5: (d: D) => Result<E, E5>
+): (errorHandler?: (res: ResultFailure<any, E1 | E2 | E3 | E4 | E5>) => Result<E, E1 | E2 | E3 | E4 | E5>) => Result<E, E1 | E2 | E3 | E4 | E5>;
+
+// 7. 6つの関数のケース
+export function pipeline<A, B, C, D, E, F, E1, E2, E3, E4, E5, E6>(
+  fn1: () => Result<A, E1>,
+  fn2: (a: A) => Result<B, E2>,
+  fn3: (b: B) => Result<C, E3>,
+  fn4: (c: C) => Result<D, E4>,
+  fn5: (d: D) => Result<E, E5>,
+  fn6: (e: E) => Result<F, E6>
+): (errorHandler?: (res: ResultFailure<any, E1 | E2 | E3 | E4 | E5 | E6>) => Result<F, E1 | E2 | E3 | E4 | E5 | E6>) => Result<F, E1 | E2 | E3 | E4 | E5 | E6>;
+
+// 8. 7つの関数のケース
+export function pipeline<A, B, C, D, E, F, G, E1, E2, E3, E4, E5, E6, E7>(
+  fn1: () => Result<A, E1>,
+  fn2: (a: A) => Result<B, E2>,
+  fn3: (b: B) => Result<C, E3>,
+  fn4: (c: C) => Result<D, E4>,
+  fn5: (d: D) => Result<E, E5>,
+  fn6: (e: E) => Result<F, E6>,
+  fn7: (f: F) => Result<G, E7>
+): (errorHandler?: (res: ResultFailure<any, E1 | E2 | E3 | E4 | E5 | E6 | E7>) => Result<G, E1 | E2 | E3 | E4 | E5 | E6 | E7>) => Result<G, E1 | E2 | E3 | E4 | E5 | E6 | E7>;
+
+// 9. 8つの関数のケース
+export function pipeline<A, B, C, D, E, F, G, H, E1, E2, E3, E4, E5, E6, E7, E8>(
+  fn1: () => Result<A, E1>,
+  fn2: (a: A) => Result<B, E2>,
+  fn3: (b: B) => Result<C, E3>,
+  fn4: (c: C) => Result<D, E4>,
+  fn5: (d: D) => Result<E, E5>,
+  fn6: (e: E) => Result<F, E6>,
+  fn7: (f: F) => Result<G, E7>,
+  fn8: (g: G) => Result<H, E8>
+): (errorHandler?: (res: ResultFailure<any, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8>) => Result<H, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8>) => Result<H, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8>;
+
+// 10. 9つの関数のケース
+export function pipeline<A, B, C, D, E, F, G, H, I, E1, E2, E3, E4, E5, E6, E7, E8, E9>(
+  fn1: () => Result<A, E1>,
+  fn2: (a: A) => Result<B, E2>,
+  fn3: (b: B) => Result<C, E3>,
+  fn4: (c: C) => Result<D, E4>,
+  fn5: (d: D) => Result<E, E5>,
+  fn6: (e: E) => Result<F, E6>,
+  fn7: (f: F) => Result<G, E7>,
+  fn8: (g: G) => Result<H, E8>,
+  fn9: (h: H) => Result<I, E9>
+): (errorHandler?: (res: ResultFailure<any, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9>) => Result<I, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9>) => Result<I, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9>;
+
+// 11. 10つの関数のケース
+export function pipeline<A, B, C, D, E, F, G, H, I, J, E1, E2, E3, E4, E5, E6, E7, E8, E9, E10>(
+  fn1: () => Result<A, E1>,
+  fn2: (a: A) => Result<B, E2>,
+  fn3: (b: B) => Result<C, E3>,
+  fn4: (c: C) => Result<D, E4>,
+  fn5: (d: D) => Result<E, E5>,
+  fn6: (e: E) => Result<F, E6>,
+  fn7: (f: F) => Result<G, E7>,
+  fn8: (g: G) => Result<H, E8>,
+  fn9: (h: H) => Result<I, E9>,
+  fn10: (i: I) => Result<J, E10>
+): (errorHandler?: (res: ResultFailure<any, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9 | E10>) => Result<J, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9 | E10>) => Result<J, E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9 | E10>;
 
 // パイプライン関数の実装: 複数の関数を連結してデータを順次処理する
 export function pipeline(...fns: Array<(arg?: any) => Result<any, any>>): any {
