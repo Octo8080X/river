@@ -366,7 +366,7 @@ const result = await pipeline([
     return failure(error.value, error.error);
   }
 );
-// { isSuccess: true, value: -2 } // -1 * 2 (flow continues after recovery)
+// { isSuccess: true, value: -1 } // -1 * 2 (flow continues after recovery)
 ```
 
 ## Type Safety
