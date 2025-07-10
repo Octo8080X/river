@@ -1,4 +1,4 @@
-import { failure, pipeline, type Result, success, isFailure } from "./lib.ts";
+import { failure, pipeline, type Result, success, isFailure, SYSTEM_ERROR, ResultFailure } from "./lib.ts";
 import { assertEquals } from "@std/assert";
 import { delay } from "@std/async";
 
@@ -209,4 +209,20 @@ Deno.test("pipeline with long chain of functions", async () => {
 
   const result = await pipeline([fn1, fn2, fn3, fn4, fn5])();
   assertEquals(result, success("14")); // ((1 + 1) * 2) + 10 = 14
+});
+
+Deno.test("pipeline with long chain of functions", async () => {
+  const fn1 = (): Result<number, "E1"> => success(1);
+  const fn2 = (input: number): Result<number, "E2"> => {
+    if (input > 0) {
+      throw new Error("E2 error"); // Simulate an error
+    }
+    return success(input + 1);
+  };
+  const fn3 = (input: number): Result<number, "E3"> => success(input * 2);
+  const result = await pipeline([fn1, fn2, fn3])();
+  assertEquals(result.isSuccess, false);
+  assertEquals((result as ResultFailure<number, SYSTEM_ERROR>).error, "SYSTEM_ERROR");
+  assertEquals((result as ResultFailure<number, SYSTEM_ERROR>).errorCapture?.toString().split("\n")[0], "Error: E2 error");
+  assertEquals(result.value, 1);
 });

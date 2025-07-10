@@ -8,21 +8,22 @@ Like a river flowing through different landscapes, River allows your data to flo
 
 - **Type-safe**: Full TypeScript support with proper type inference
 - **Error handling**: Built-in error propagation and recovery
+- **System error handling**: Automatic exception catching with error capture
 - **Async support**: Seamless mixing of synchronous and asynchronous functions
 - **Composable**: Chain up to 10 functions in a single pipeline
 - **Zero dependencies**: Lightweight and self-contained
 
 ## Installation
 
-```bash
-# Using Deno
-import { pipeline, success, failure, isFailure, type Result } from "https://deno.land/x/river/mod.ts";
+```ts
+// Using Deno
+import { pipeline, success, failure, isFailure, type Result, SYSTEM_ERROR } from "./mod.ts";
 ```
 
 ## Quick Start
 
 ```typescript
-import { pipeline, success, failure, type Result } from "./mod.ts";
+import { pipeline, success, failure, type Result, SYSTEM_ERROR } from "./mod.ts";
 
 // Define transformation functions that return Result types
 const parseNumber = (input: string): Result<number, "PARSE_ERROR"> => {
@@ -78,7 +79,16 @@ interface ResultFailure<T, E> {
   isSuccess: false;
   value: T;
   error: E;
+  errorCapture?: string; // Optional error capture for system errors
 }
+```
+
+#### `SYSTEM_ERROR`
+
+A special error type used for system-level errors such as uncaught exceptions.
+
+```typescript
+type SYSTEM_ERROR = "SYSTEM_ERROR";
 ```
 
 ### Functions
@@ -92,13 +102,17 @@ const result = success(42);
 // { isSuccess: true, value: 42 }
 ```
 
-#### `failure<T, E>(value: T, error: E): Result<T, E>`
+#### `failure<T, E>(value: T, error: E, errorCapture?: string): Result<T, E>`
 
-Creates a failed result with the given value and error.
+Creates a failed result with the given value and error. Optionally includes error capture information for debugging.
 
 ```typescript
 const result = failure("invalid input", "VALIDATION_ERROR");
 // { isSuccess: false, value: "invalid input", error: "VALIDATION_ERROR" }
+
+// With error capture for system errors
+const systemError = failure(data, "SYSTEM_ERROR", "Error: Division by zero");
+// { isSuccess: false, value: data, error: "SYSTEM_ERROR", errorCapture: "Error: Division by zero" }
 ```
 
 #### `isFailure<T, E>(result: Result<T, E>): result is ResultFailure<T, E>`
@@ -173,6 +187,33 @@ const result = await pipeline([
 ])();
 
 console.log(result); // { isSuccess: false, value: 0, error: "DIVIDE_ERROR" }
+```
+
+### System Error Handling
+
+River automatically catches runtime exceptions and converts them to `SYSTEM_ERROR` results with error capture information:
+
+```typescript
+const riskyFunction = (x: number): Result<number, "RISKY_ERROR"> => {
+  if (x > 0) {
+    throw new Error("Something went wrong!"); // Runtime exception
+  }
+  return success(x + 1);
+};
+
+const result = await pipeline([
+  () => success(5),
+  riskyFunction,
+  toString
+])();
+
+console.log(result);
+// {
+//   isSuccess: false,
+//   value: 5,
+//   error: "SYSTEM_ERROR",
+//   errorCapture: "Error: Something went wrong!"
+// }
 ```
 
 ### Recovery Functions
@@ -304,6 +345,30 @@ const result = await pipeline([
 // { isSuccess: false, value: "Service unavailable", error: "SERVICE_ERROR" }
 ```
 
+### 4. System Error Recovery
+
+Handle runtime exceptions that are automatically converted to `SYSTEM_ERROR`:
+
+```typescript
+const result = await pipeline([
+  () => success(1),
+  (x) => {
+    throw new Error("Unexpected error");
+    return success(x);
+  },
+  (x) => success(x * 2),
+])(
+  (error) => {
+    if (error.error === "SYSTEM_ERROR") {
+      console.log("Caught system error:", error.errorCapture);
+      return success(-1); // Fallback value
+    }
+    return failure(error.value, error.error);
+  }
+);
+// { isSuccess: true, value: -2 } // -1 * 2 (flow continues after recovery)
+```
+
 ## Type Safety
 
 The library provides full type safety with proper type inference:
@@ -322,6 +387,38 @@ const pipeline2 = pipeline([
   (x: number) => failure(x, "ERROR" as const), // Result<number, "ERROR">
 ]);
 // pipeline2 returns: Promise<Result<number, "ERROR">>
+
+// System errors are automatically handled
+const pipeline3 = pipeline([
+  () => success(42),
+  (x: number) => {
+    throw new Error("Runtime error"); // Automatically becomes SYSTEM_ERROR
+    return success(x);
+  },
+]);
+// pipeline3 returns: Promise<Result<number, SYSTEM_ERROR>>
+```
+
+## Error Capture and Debugging
+
+When runtime exceptions occur, River automatically captures the error information:
+
+```typescript
+const buggyPipeline = pipeline([
+  () => success("test"),
+  (input: string) => {
+    throw new Error(`Processing failed for: ${input}`);
+    return success(input.toUpperCase());
+  },
+]);
+
+const result = await buggyPipeline();
+if (!result.isSuccess && result.error === "SYSTEM_ERROR") {
+  console.log("Error occurred:", result.errorCapture);
+  // Output: "Error occurred: Error: Processing failed for: test"
+  console.log("Failed value:", result.value);
+  // Output: "Failed value: test"
+}
 ```
 
 ## Limitations
@@ -329,6 +426,7 @@ const pipeline2 = pipeline([
 - Maximum of 10 functions per River pipeline (due to TypeScript tuple length limitations)
 - All functions must return `Result<T, E>` or `Promise<Result<T, E>>` to maintain type safety
 - Recovery functions receive the first error encountered and cannot inspect subsequent errors in the flow
+- Runtime exceptions are automatically converted to `SYSTEM_ERROR` type with error capture information
 
 ## Contributing
 

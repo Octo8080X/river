@@ -1,12 +1,15 @@
-interface ResultSuccess<T> {
+export type SYSTEM_ERROR = "SYSTEM_ERROR";
+
+export interface ResultSuccess<T> {
   isSuccess: true;
   value: T;
 }
 
-interface ResultFailure<T, E> {
+export interface ResultFailure<T, E> {
   isSuccess: false;
   value: T;
-  error: E;
+  error: E | SYSTEM_ERROR;
+  errorCapture?: string;
 }
 
 export type Result<T, E> = ResultSuccess<T> | ResultFailure<T, E>;
@@ -17,13 +20,13 @@ export function success<T>(value: T): Result<T, never> {
   return { isSuccess: true, value };
 }
 
-export function failure<T, E>(value: T, error: E): Result<T, E> {
-  return { isSuccess: false, value, error };
+export function failure<T, E>(value: T, error: E, errorCapture?: string): Result<T, E> {
+  return { isSuccess: false, value, error, errorCapture };
 }
 
 export function isFailure<T, E>(
-  result: Result<T, E>,
-): result is ResultFailure<T, E> {
+  result: Result<T, E | SYSTEM_ERROR>,
+): result is ResultFailure<T, E | SYSTEM_ERROR> {
   return !result.isSuccess;
 }
 
@@ -32,13 +35,13 @@ type ArrayOfLength<T, N extends number> = T[] & { length: N };
 export function pipeline<T, E>(
   fns: ArrayOfLength<() => Result<T, E> | Promise<Result<T, E>>, 0>,
 ): <RecoveryT = never, RecoveryE = never>(
-  recovery?: (error: ResultFailure<T, E>) => MaybePromise<Result<T, E>|Result<RecoveryT, RecoveryE>>,
+  recovery?: (error: ResultFailure<T, E | SYSTEM_ERROR>) => MaybePromise<Result<T, E | SYSTEM_ERROR>|Result<RecoveryT, RecoveryE>>,
 ) => Promise<Result<null, null>|Result<RecoveryT, RecoveryE>>;
 
 export function pipeline<T0, E0>(
   fns: [() => Result<T0, E0> | Promise<Result<T0, E0>>],
 ): <RecoveryT = never, RecoveryE = never>(
-  recovery?: (error: ResultFailure<T0, E0>) => MaybePromise<Result<T0, E0>|Result<RecoveryT, RecoveryE>>,
+  recovery?: (error: ResultFailure<T0, E0 | SYSTEM_ERROR>) => MaybePromise<Result<T0, E0 | SYSTEM_ERROR>|Result<RecoveryT, RecoveryE>>,
 ) => Promise<Result<T0, E0>|Result<RecoveryT, RecoveryE>>;
 
 export function pipeline<T0, T1, E0, E1>(
@@ -291,31 +294,40 @@ export function pipeline<
 ) => Promise<Result<T0, E0>|Result<T1, E1>|Result<T2, E2>|Result<T3, E3>|Result<T4, E4>|Result<T5, E5>|Result<T6, E6>|Result<T7, E7>|Result<T8, E8>|Result<T9, E9>|Result<T10, E10>|Result<RecoveryT, RecoveryE>>;
 
 export function pipeline<T, E>(
-  fns: Array<(input?: any) => Result<T, E> | Promise<Result<T, E>>>,
+  fns: Array<(input?: any) => Result<T, E | SYSTEM_ERROR> | Promise<Result<T, E | SYSTEM_ERROR>>>,
+
 ): <RecoveryT = never, RecoveryE = never>(
-  recovery?: (error: ResultFailure<T, E>) => MaybePromise<Result<T, E>|Result<RecoveryT, RecoveryE>>,
-) => Promise<Result<T, E>|Result<RecoveryT, RecoveryE>> {
+  recovery?: (error: ResultFailure<T, E | SYSTEM_ERROR>) => MaybePromise<Result<T, E | SYSTEM_ERROR> | Result<RecoveryT, RecoveryE>>,
+) => Promise<Result<T, E | SYSTEM_ERROR> | Result<RecoveryT, RecoveryE>> {
   return async <RecoveryT = never, RecoveryE = never>(
-    recovery?: (error: ResultFailure<T, E>) => MaybePromise<Result<T, E>|Result<RecoveryT, RecoveryE>>,
-  ): Promise<Result<T, E>|Result<RecoveryT, RecoveryE>> => {
-    let result: Result<T, E> | undefined;
+    recovery?: (error: ResultFailure<T, E | SYSTEM_ERROR>) => MaybePromise<Result<T, E | SYSTEM_ERROR> | Result<RecoveryT, RecoveryE>>,
+  ): Promise<Result<T, E | SYSTEM_ERROR> | Result<RecoveryT, RecoveryE>> => {
+    let result: Result<T, E | SYSTEM_ERROR> | undefined;
 
     if (fns.length === 0) {
       return success(null as any); // Return a success with null value for empty pipeline
     }
 
     for (const fn of fns) {
-      const res = await fn(result?.value);
-      if (res.isSuccess) {
-        result = res;
-      } else {
-        if (recovery) {
-          return recovery(res);
+
+      try {
+        const res = await fn(result?.value);
+        if (res.isSuccess) {
+          result = res;
+        } else {
+          if (recovery) {
+            return recovery(res);
+          }
+          return res; // Return the first failure
         }
-        return res; // Return the first failure
+      } catch (error) {
+        const errorResult = failure(result?.value as T, "SYSTEM_ERROR" as E | SYSTEM_ERROR, error as string) as ResultFailure<T, E | SYSTEM_ERROR>;
+        if (recovery) {
+          return recovery(errorResult);
+        }
+        return errorResult;
       }
     }
-
-    return result as Result<T, E>;
+    return result as Result<T, E | SYSTEM_ERROR> | Result<RecoveryT, RecoveryE>;
   };
 }
