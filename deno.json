@@ -1,6 +1,6 @@
 {
   "name": "river",
-  "description": "A TypeScript pipeline library for functional programming",
+  "description": "A TypeScript pipeline library for functional programming like",
   "version": "0.1.0",
   "exports": "./mod.ts",
   "license": "MIT",
