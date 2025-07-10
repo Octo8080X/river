@@ -29,7 +29,6 @@ export function isFailure<T, E>(
 
 type ArrayOfLength<T, N extends number> = T[] & { length: N };
 
-// 通常の配列のオーバーライド1
 export function pipeline<T, E>(
   fns: ArrayOfLength<() => Result<T, E> | Promise<Result<T, E>>, 0>,
 ): <RecoveryT = never, RecoveryE = never>(

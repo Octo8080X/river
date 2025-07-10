@@ -34,14 +34,14 @@ Deno.test("pipeline with recovery function", async () => {
 
   const p = pipeline([fn7, fn8]);
   const result = await p(
-    (error): Result<number, "E7">|Result<string, "E8">|Result<boolean, "Recovered"> => {
+    (error) => {
         if(error.error === "E8") {
             return failure(error.value, "E8");
         }
-        return failure<boolean, "Recovered">(false, "Recovered");
+        return failure<false, "Recovered">(false, "Recovered");
         
     }
   );
 
-  assertEquals(result, failure<boolean, "Recovered">(false, "Recovered"));
+  assertEquals(result, failure<false, "Recovered">(false, "Recovered"));
 });
