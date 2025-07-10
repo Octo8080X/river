@@ -1,5 +1,5 @@
 {
-  "name": "river",
+  "name": "@octo/river",
   "description": "A TypeScript pipeline library for functional programming like",
   "version": "0.1.0",
   "exports": "./mod.ts",
