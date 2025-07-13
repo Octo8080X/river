@@ -9,7 +9,7 @@ export interface ResultFailure<T, E> {
   isSuccess: false;
   value: T;
   error: E | SYSTEM_ERROR;
-  errorCapture?: string;
+  errorCapture?: any
 }
 
 export type Result<T, E> = ResultSuccess<T> | ResultFailure<T, E>;
@@ -31,6 +31,14 @@ export function isFailure<T, E>(
 }
 
 type ArrayOfLength<T, N extends number> = T[] & { length: N };
+
+//type InnerPipelineFunction<I, T, E> = (input?: I) => Result<T, E> | Promise<Result<T, E>>;
+
+export function define<I extends undefined, T, E>(func: () => Result<T, E> | Promise<Result<T, E>>): () => Result<T, E> | Promise<Result<T, E | SYSTEM_ERROR>>;
+export function define<I, T, E>(func: (input: I) => Result<T, E> | Promise<Result<T, E>>): (input: I) => Result<T, E> | Promise<Result<T, E | SYSTEM_ERROR>>;
+export function define<I, T, E>(func: (input?: I) => Result<T, E> | Promise<Result<T, E>>): (input?: I) => Result<T, E> | Promise<Result<T, E | SYSTEM_ERROR>> {
+  return func
+}
 
 export function pipeline<T, E>(
   fns: ArrayOfLength<() => Result<T, E> | Promise<Result<T, E>>, 0>,

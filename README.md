@@ -7,6 +7,7 @@ Like a river flowing through different landscapes, River allows your data to flo
 ## Features
 
 - **Type-safe**: Full TypeScript support with proper type inference
+- **Function definition**: `define` function for enhanced type safety and clearer function signatures
 - **Error handling**: Built-in error propagation and recovery
 - **System error handling**: Automatic exception catching with error capture
 - **Async support**: Seamless mixing of synchronous and asynchronous functions
@@ -17,7 +18,7 @@ Like a river flowing through different landscapes, River allows your data to flo
 
 ```ts
 // Using Deno
-import { pipeline, success, failure, isFailure, type Result } from "./mod.ts";
+import { pipeline, success, failure, isFailure, define, type Result } from "./mod.ts";
 ```
 
 **Note**: The `SYSTEM_ERROR` type is automatically handled by the library and doesn't need to be explicitly imported.
@@ -25,25 +26,25 @@ import { pipeline, success, failure, isFailure, type Result } from "./mod.ts";
 ## Quick Start
 
 ```typescript
-import { pipeline, success, failure, type Result } from "./mod.ts";
+import { pipeline, success, failure, define, type Result } from "./mod.ts";
 
 // Define transformation functions that return Result types
-const parseNumber = (input: string): Result<number, "PARSE_ERROR"> => {
+const parseNumber = define<string, number, "PARSE_ERROR">((input: string): Result<number, "PARSE_ERROR"> => {
   const num = parseInt(input);
   return isNaN(num) ? failure(0, "PARSE_ERROR") : success(num); // Fixed: use 0 for failed value
-};
+});
 
-const multiplyByTwo = (input: number): Result<number, "MULTIPLY_ERROR"> => {
+const multiplyByTwo = define<number, number, "MULTIPLY_ERROR">((input: number): Result<number, "MULTIPLY_ERROR"> => {
   return success(input * 2);
-};
+});
 
-const formatResult = (input: number): Result<string, "FORMAT_ERROR"> => {
+const formatResult = define<number, string, "FORMAT_ERROR">((input: number): Result<string, "FORMAT_ERROR"> => {
   return success(`Result: ${input}`);
-};
+});
 
 // Create a River pipeline - data flows from one function to the next
 const processNumber = pipeline([
-  () => parseNumber("42"),  // Start the flow
+  define<undefined, number, "PARSE_ERROR">(() => parseNumber("42")),  // Start the flow
   multiplyByTwo,           // Transform the data
   formatResult             // Final transformation
 ]);
@@ -133,6 +134,32 @@ if (isFailure(result)) {
 }
 ```
 
+#### `define<I, T, E>(func: Function): Function`
+
+Creates a type-safe function wrapper that enforces proper input/output types for pipeline functions. This function provides better type safety and clearer function signatures.
+
+**Overloads:**
+- For functions with no input: `define<undefined, T, E>(func: () => Result<T, E>): () => Result<T, E>`
+- For functions with input: `define<I, T, E>(func: (input: I) => Result<T, E>): (input: I) => Result<T, E>`
+
+```typescript
+import { define, success, pipeline, type Result } from "./mod.ts";
+
+// Define a type-safe transformation function
+const addOne = define<number, number, "ADD_ERROR">((x: number): Result<number, "ADD_ERROR"> => {
+  return success(x + 1);
+});
+
+// Define a source function (no input)
+const createNumber = define<undefined, number, never>(() => success(42));
+
+// Use in pipeline
+const result = await pipeline([
+  createNumber,
+  addOne
+])();
+```
+
 #### `pipeline(functions: Array<Function>): PipelineFunction`
 
 Creates a River pipeline from an array of functions. Like a river flowing through different landscapes, data flows from one function to the next, with each function transforming the data along the way.
@@ -144,12 +171,12 @@ Creates a River pipeline from an array of functions. Like a river flowing throug
 **Returns:** A pipeline function that executes the data flow and optionally accepts a recovery function for error handling.
 
 ```typescript
-import { pipeline, success } from "./mod.ts";
+import { pipeline, success, define } from "./mod.ts";
 
 const dataFlow = pipeline([
-  () => success(1),                    // Source: start the flow
-  (x: number) => success(x * 2),       // Transform: multiply
-  (x: number) => success(x.toString()) // Transform: convert to string
+  define<undefined, number, never>(() => success(1)),                    // Source: start the flow
+  define<number, number, never>((x: number) => success(x * 2)),       // Transform: multiply
+  define<number, string, never>((x: number) => success(x.toString())) // Transform: convert to string
 ]);
 
 const result = await dataFlow();
@@ -161,15 +188,15 @@ const result = await dataFlow();
 ### Basic Data Flow
 
 ```typescript
-import { pipeline, success, failure, type Result } from "./mod.ts";
+import { pipeline, success, define, type Result } from "./mod.ts";
 
-const addOne = (x: number): Result<number, "ADD_ERROR"> => success(x + 1);
-const multiply = (x: number): Result<number, "MULTIPLY_ERROR"> => success(x * 2);
-const toString = (x: number): Result<string, "STRING_ERROR"> => success(x.toString());
+const addOne = define<number, number, "ADD_ERROR">((x: number): Result<number, "ADD_ERROR"> => success(x + 1));
+const multiply = define<number, number, "MULTIPLY_ERROR">((x: number): Result<number, "MULTIPLY_ERROR"> => success(x * 2));
+const toString = define<number, string, "STRING_ERROR">((x: number): Result<string, "STRING_ERROR"> => success(x.toString()));
 
 // Create a data flow: 5 → 6 → 12 → "12"
 const dataFlow = pipeline([
-  () => success(5),  // Start with 5
+  define<undefined, number, never>(() => success(5)),  // Start with 5
   addOne,           // Add 1: 5 → 6
   multiply,         // Multiply by 2: 6 → 12
   toString          // Convert to string: 12 → "12"
@@ -182,19 +209,19 @@ console.log(result); // { isSuccess: true, value: "12" }
 ### Error Handling
 
 ```typescript
-import { pipeline, success, failure, type Result } from "./mod.ts";
+import { pipeline, success, failure, define, type Result } from "./mod.ts";
 
-const divide = (x: number): Result<number, "DIVIDE_ERROR"> => {
+const divide = define<number, number, "DIVIDE_ERROR">((x: number): Result<number, "DIVIDE_ERROR"> => {
   if (x === 0) {
     return failure(x, "DIVIDE_ERROR");
   }
   return success(10 / x);
-};
+});
 
-const toString = (x: number): Result<string, "STRING_ERROR"> => success(x.toString());
+const toString = define<number, string, "STRING_ERROR">((x: number): Result<string, "STRING_ERROR"> => success(x.toString()));
 
 const result = await pipeline([
-  () => success(0),
+  define<undefined, number, never>(() => success(0)),
   divide,
   toString
 ])();
@@ -207,19 +234,19 @@ console.log(result); // { isSuccess: false, value: 0, error: "DIVIDE_ERROR" }
 River automatically catches runtime exceptions and converts them to `SYSTEM_ERROR` results with error capture information:
 
 ```typescript
-import { pipeline, success, type Result } from "./mod.ts";
+import { pipeline, success, define, type Result } from "./mod.ts";
 
-const riskyFunction = (x: number): Result<number, "RISKY_ERROR"> => {
+const riskyFunction = define<number, number, "RISKY_ERROR">((x: number): Result<number, "RISKY_ERROR"> => {
   if (x > 0) {
     throw new Error("Something went wrong!"); // Runtime exception
   }
   return success(x + 1);
-};
+});
 
-const toString = (x: number): Result<string, "STRING_ERROR"> => success(x.toString());
+const toString = define<number, string, "STRING_ERROR">((x: number): Result<string, "STRING_ERROR"> => success(x.toString()));
 
 const result = await pipeline([
-  () => success(5),
+  define<undefined, number, never>(() => success(5)),
   riskyFunction,
   toString
 ])();
@@ -233,28 +260,28 @@ console.log(result);
 // }
 
 // Access error details
-if (result.error === "SYSTEM_ERROR" && result.errorCapture instanceof Error) {
-  console.log("Error message:", result.errorCapture.message);
-  console.log("Stack trace:", result.errorCapture.stack);
+if (!result.isSuccess && result.error === "SYSTEM_ERROR" && result.errorCapture instanceof Error) {
+    console.log("Error message:", result.errorCapture.message);
+    console.log("Stack trace:", result.errorCapture.stack);
 }
 ```
 
 ### Recovery Functions
 
 ```typescript
-import { pipeline, success, failure, type Result } from "./mod.ts";
+import { pipeline, success, failure, define, type Result } from "./mod.ts";
 
-const divide = (x: number): Result<number, "DIVIDE_ERROR"> => {
+const divide = define<number, number, "DIVIDE_ERROR">((x: number): Result<number, "DIVIDE_ERROR"> => {
   if (x === 0) {
     return failure(x, "DIVIDE_ERROR");
   }
   return success(10 / x);
-};
+});
 
-const toString = (x: number): Result<string, "STRING_ERROR"> => success(x.toString());
+const toString = define<number, string, "STRING_ERROR">((x: number): Result<string, "STRING_ERROR"> => success(x.toString()));
 
 const result = await pipeline([
-  () => success(0),
+  define<undefined, number, never>(() => success(0)),
   divide,
   toString
 ])(
@@ -273,20 +300,20 @@ console.log(result); // { isSuccess: true, value: "Division by zero handled" }
 ### Mixing Sync and Async Functions
 
 ```typescript
-import { pipeline, success, type Result } from "./mod.ts";
+import { pipeline, success, define, type Result } from "./mod.ts";
 
-const addOne = (x: number): Result<number, "ADD_ERROR"> => success(x + 1);
+const addOne = define<number, number, "ADD_ERROR">((x: number): Result<number, "ADD_ERROR"> => success(x + 1));
 
-const asyncMultiply = async (x: number): Promise<Result<number, "ASYNC_ERROR">> => {
+const asyncMultiply = define<number, number, "ASYNC_ERROR">(async (x: number): Promise<Result<number, "ASYNC_ERROR">> => {
   // Simulating async operation
   await new Promise(resolve => setTimeout(resolve, 100));
   return success(x * 3);
-};
+});
 
-const toString = (x: number): Result<string, "STRING_ERROR"> => success(x.toString());
+const toString = define<number, string, "STRING_ERROR">((x: number): Result<string, "STRING_ERROR"> => success(x.toString()));
 
 const result = await pipeline([
-  () => success(5),
+  define<undefined, number, never>(() => success(5)),
   addOne,           // sync function
   asyncMultiply,    // async function
   toString          // sync function
@@ -298,7 +325,7 @@ console.log(result); // { isSuccess: true, value: "18" }
 ### Complex Data Types
 
 ```typescript
-import { pipeline, success, type Result } from "./mod.ts";
+import { pipeline, success, define, type Result } from "./mod.ts";
 
 interface User {
   id: number;
@@ -311,17 +338,17 @@ interface UserWithEmail {
   email: string;
 }
 
-const createUser = (): Result<User, "CREATE_ERROR"> => {
+const createUser = define<undefined, User, "CREATE_ERROR">((): Result<User, "CREATE_ERROR"> => {
   return success({ id: 1, name: "John" });
-};
+});
 
-const addEmail = (user: User): Result<UserWithEmail, "EMAIL_ERROR"> => {
+const addEmail = define<User, UserWithEmail, "EMAIL_ERROR">((user: User): Result<UserWithEmail, "EMAIL_ERROR"> => {
   return success({ ...user, email: "john@example.com" });
-};
+});
 
-const serializeUser = (user: UserWithEmail): Result<string, "SERIALIZE_ERROR"> => {
+const serializeUser = define<UserWithEmail, string, "SERIALIZE_ERROR">((user: UserWithEmail): Result<string, "SERIALIZE_ERROR"> => {
   return success(JSON.stringify(user));
-};
+});
 
 const result = await pipeline([
   createUser,
@@ -351,12 +378,12 @@ River provides several patterns for handling errors in your data flow:
 By default, River stops the flow at the first error encountered:
 
 ```typescript
-import { pipeline, success, failure } from "./mod.ts";
+import { pipeline, success, failure, define } from "./mod.ts";
 
 const result = await pipeline([
-  () => success(1),
-  (x) => failure(x, "ERROR_1"),    // Flow stops here
-  (x) => success(x * 2),           // This won't execute
+  define<undefined, number, never>(() => success(1)),
+  define<number, number, "ERROR_1">((x) => failure(x, "ERROR_1")),    // Flow stops here
+  define<number, number, never>((x) => success(x * 2)),           // This won't execute
 ])();
 // { isSuccess: false, value: 1, error: "ERROR_1" }
 ```
@@ -366,12 +393,12 @@ const result = await pipeline([
 Use recovery functions to handle errors and continue the flow:
 
 ```typescript
-import { pipeline, success, failure } from "./mod.ts";
+import { pipeline, success, failure, define } from "./mod.ts";
 
 const result = await pipeline([
-  () => success(1),
-  (x) => failure(x, "ERROR_1"),    // Error occurs
-  (x) => success(x * 2),           // This executes with recovered value
+  define<undefined, number, never>(() => success(1)),
+  define<number, number, "ERROR_1">((x) => failure(x, "ERROR_1")),    // Error occurs
+  define<number, number, never>((x) => success(x * 2)),           // This executes with recovered value
 ])(
   (error) => success(999) // Recovery: provide fallback value
 );
@@ -383,11 +410,11 @@ const result = await pipeline([
 Transform errors into different error types:
 
 ```typescript
-import { pipeline, success, failure } from "./mod.ts";
+import { pipeline, success, failure, define } from "./mod.ts";
 
 const result = await pipeline([
-  () => success(1),
-  (x) => failure(x, "NETWORK_ERROR"),
+  define<undefined, number, never>(() => success(1)),
+  define<number, number, "NETWORK_ERROR">((x) => failure(x, "NETWORK_ERROR")),
 ])(
   (error) => failure("Service unavailable", "SERVICE_ERROR")
 );
@@ -399,15 +426,15 @@ const result = await pipeline([
 Handle runtime exceptions that are automatically converted to `SYSTEM_ERROR`:
 
 ```typescript
-import { pipeline, success, failure } from "./mod.ts";
+import { pipeline, success, failure, define } from "./mod.ts";
 
 const result = await pipeline([
-  () => success(1),
-  (x) => {
+  define<undefined, number, never>(() => success(1)),
+  define<number, number, never>((x) => {
     throw new Error("Unexpected error");
     return success(x);
-  },
-  (x) => success(x * 2),
+  }),
+  define<number, number, never>((x) => success(x * 2)),
 ])(
   (error) => {
     if (error.error === "SYSTEM_ERROR") {
@@ -425,29 +452,29 @@ const result = await pipeline([
 The library provides full type safety with proper type inference:
 
 ```typescript
-import { pipeline, success, failure } from "./mod.ts";
+import { pipeline, success, failure, define } from "./mod.ts";
 
 // Types are automatically inferred
 const pipeline1 = pipeline([
-  () => success(42),        // Result<number, never>
-  (x: number) => success(x.toString()), // Result<string, never>
+  define<undefined, number, never>(() => success(42)),        // Result<number, never>
+  define<number, string, never>((x: number) => success(x.toString())), // Result<string, never>
 ]);
 // pipeline1 returns: Promise<Result<string, never>>
 
 // Error types are also tracked
 const pipeline2 = pipeline([
-  () => success(42),        // Result<number, never>
-  (x: number) => failure(x, "ERROR" as const), // Result<number, "ERROR">
+  define<undefined, number, never>(() => success(42)),        // Result<number, never>
+  define<number, number, "ERROR">((x: number) => failure(x, "ERROR" as const)), // Result<number, "ERROR">
 ]);
 // pipeline2 returns: Promise<Result<number, "ERROR">>
 
 // System errors are automatically handled
 const pipeline3 = pipeline([
-  () => success(42),
-  (x: number) => {
+  define<undefined, number, never>(() => success(42)),
+  define<number, number, never>((x: number) => {
     throw new Error("Runtime error"); // Automatically becomes SYSTEM_ERROR
     return success(x);
-  },
+  }),
 ]);
 // pipeline3 returns: Promise<Result<number, SYSTEM_ERROR>>
 ```
@@ -457,14 +484,14 @@ const pipeline3 = pipeline([
 When runtime exceptions occur, River automatically captures the Error object for debugging:
 
 ```typescript
-import { pipeline, success } from "./mod.ts";
+import { pipeline, success, define } from "./mod.ts";
 
 const buggyPipeline = pipeline([
-  () => success("test"),
-  (input: string) => {
+  define<undefined, string, never>(() => success("test")),
+  define<string, string, never>((input: string) => {
     throw new Error(`Processing failed for: ${input}`);
     return success(input.toUpperCase());
-  },
+  }),
 ]);
 
 const result = await buggyPipeline();
@@ -483,6 +510,7 @@ if (!result.isSuccess && result.error === "SYSTEM_ERROR") {
 
 - Maximum of 10 functions per River pipeline (due to TypeScript tuple length limitations)
 - All functions must return `Result<T, E>` or `Promise<Result<T, E>>` to maintain type safety
+- Functions should be wrapped with `define` for optimal type safety and clarity
 - Recovery functions receive the first error encountered and cannot inspect subsequent errors in the flow
 - Runtime exceptions are automatically converted to `SYSTEM_ERROR` type with error capture information
 

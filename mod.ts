@@ -1,1 +1,1 @@
-export { pipeline, type Result, success, failure, isFailure } from "./src/lib.ts";
+export { pipeline, type Result, success, failure, isFailure, define } from "./src/lib.ts";
